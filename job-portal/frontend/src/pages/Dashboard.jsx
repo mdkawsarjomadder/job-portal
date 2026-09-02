@@ -61,7 +61,10 @@ export default function Dashboard() {
           <div className="bg-purple-50 p-6 rounded-lg border border-purple-200">
             <h2 className="text-xl font-semibold text-purple-900 mb-2">Employer Panel</h2>
             <p className="text-purple-700 mb-4">You can post new jobs and view job applications here.</p>
-            <button className="bg-purple-600 text-white px-4 py-2 rounded font-medium hover:bg-purple-700 transition">
+            <button 
+              onClick={() => navigate('/create-job')}
+              className="bg-purple-600 text-white px-4 py-2 rounded font-medium hover:bg-purple-700 transition"
+            >
               + Post a New Job
             </button>
           </div>
