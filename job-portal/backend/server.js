@@ -1,3 +1,4 @@
+import jobRoutes from './routes/jobRoutes.js';
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -13,6 +14,7 @@ app.use(express.json());
 
 //Router-------------
 app.use('/api/auth', authRouter);
+app.use('/api/jobs', jobRoutes);
 
 app.get('/',(req,res) => {
     res.send('Job Portal API is running successfully!');
