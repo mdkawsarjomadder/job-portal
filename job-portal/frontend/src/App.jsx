@@ -1,17 +1,26 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import CreateJob from './pages/CreateJob'; // <--- Import করুন
+import Register from './pages/Register';
+import ApplicantDashboard from './pages/ApplicantDashboard';
+import EmployerDashboard from './pages/EmployerDashboard'; // ১. ইম্পোর্ট নিশ্চিত করুন
+import CreateJob from './pages/CreateJob';
 
 function App() {
   return (
-    <BrowserRouter>
+    <Router>
       <Routes>
         <Route path="/login" element={<Login />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/create-job" element={<CreateJob />} /> {/* <--- Route যোগ করুন */}
+        <Route path="/register" element={<Register />} />
+        <Route path="/dashboard" element={<ApplicantDashboard />} />
+        
+        {/* ২. সঠিকভাবে রুট মাউন্ট করুন */}
+        <Route path="/employerdashboard" element={<EmployerDashboard />} />
+        <Route path="/create-job" element={<CreateJob />} />
+        
+        {/* ডিফল্ট রুট */}
+        <Route path="/" element={<Login />} />
       </Routes>
-    </BrowserRouter>
+    </Router>
   );
 }
 

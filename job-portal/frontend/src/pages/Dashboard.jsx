@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import ApplicantDashboard from './ApplicantDashboard';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -28,7 +29,10 @@ export default function Dashboard() {
   };
 
   if (!user) return null;
-
+  
+  if (user.role === 'APPLICANT') {
+    return <ApplicantDashboard />;
+  }
   return (
     <div className="min-h-screen bg-gray-100 p-8">
       <div className="max-w-4xl mx-auto bg-white p-6 rounded-lg shadow-md">

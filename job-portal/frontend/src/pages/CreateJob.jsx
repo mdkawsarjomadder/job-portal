@@ -12,43 +12,58 @@ export default function CreateJob() {
     jobType: 'Full-time'
   });
   const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setMessage('');
+    
     const token = localStorage.getItem('token');
 
+    if (!token) {
+      setMessage('You must be logged in to post a job.');
+      return;
+    }
+
+    setLoading(true);
+
     try {
-      await axios.post('http://localhost:5000/api/jobs', formData, {
+      const res = await axios.post('http://localhost:5000/api/jobs', formData, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      setMessage('Job posted successfully!');
+      setMessage(res.data?.message || 'Job posted successfully!');
 
-      // ২ সেকেন্ড নোটিফিকেশন দেখাবে, তারপর ড্যাশবোর্ডে রিডাইরেক্ট করবে
       setTimeout(() => {
         setMessage('');
         navigate('/dashboard');
       }, 2000);
 
     } catch (err) {
+      console.error('Create Job Error:', err.response?.data || err.message);
       setMessage(err.response?.data?.message || 'Error posting job');
 
-      // এরর মেসেজটিও ২ সেকেন্ড পর মুছে যাবে
       setTimeout(() => {
         setMessage('');
-      }, 2000);
+      }, 3000);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex justify-center items-center p-6">
+    <div className="min-h-screen bg-gray-100 flex justify-center items-center p-6 text-left">
       <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-md w-full max-w-lg">
         <h2 className="text-2xl font-bold mb-6 text-gray-800 text-center">Post a New Job</h2>
         
         {message && (
-          <p className={`mb-4 text-center font-semibold ${
-            message.includes('successfully') ? 'text-green-600' : 'text-red-500'
+          <p className={`mb-4 text-center font-semibold p-2 rounded ${
+            message.toLowerCase().includes('success') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'
           }`}>
             {message}
           </p>
@@ -58,9 +73,11 @@ export default function CreateJob() {
           <label className="block text-gray-700 font-medium mb-1">Job Title</label>
           <input 
             type="text" 
+            name="title"
+            value={formData.title}
             placeholder="e.g. Frontend Developer" 
-            className="w-full p-2 border rounded focus:outline-blue-500 bg-white text-gray-800"
-            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+            className="w-full p-2 border rounded focus:outline-purple-500 bg-white text-gray-800"
+            onChange={handleChange}
             required 
           />
         </div>
@@ -70,17 +87,21 @@ export default function CreateJob() {
             <label className="block text-gray-700 font-medium mb-1">Category</label>
             <input 
               type="text" 
+              name="category"
+              value={formData.category}
               placeholder="e.g. Software" 
-              className="w-full p-2 border rounded focus:outline-blue-500 bg-white text-gray-800"
-              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              className="w-full p-2 border rounded focus:outline-purple-500 bg-white text-gray-800"
+              onChange={handleChange}
               required 
             />
           </div>
           <div>
             <label className="block text-gray-700 font-medium mb-1">Job Type</label>
             <select 
-              className="w-full p-2 border rounded focus:outline-blue-500 bg-white text-gray-800"
-              onChange={(e) => setFormData({ ...formData, jobType: e.target.value })}
+              name="jobType"
+              value={formData.jobType}
+              className="w-full p-2 border rounded focus:outline-purple-500 bg-white text-gray-800"
+              onChange={handleChange}
             >
               <option value="Full-time">Full-time</option>
               <option value="Part-time">Part-time</option>
@@ -95,9 +116,11 @@ export default function CreateJob() {
             <label className="block text-gray-700 font-medium mb-1">Location</label>
             <input 
               type="text" 
+              name="location"
+              value={formData.location}
               placeholder="e.g. Dhaka / Remote" 
-              className="w-full p-2 border rounded focus:outline-blue-500 bg-white text-gray-800"
-              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+              className="w-full p-2 border rounded focus:outline-purple-500 bg-white text-gray-800"
+              onChange={handleChange}
               required 
             />
           </div>
@@ -105,9 +128,11 @@ export default function CreateJob() {
             <label className="block text-gray-700 font-medium mb-1">Salary</label>
             <input 
               type="text" 
+              name="salary"
+              value={formData.salary}
               placeholder="e.g. $50,000/year" 
-              className="w-full p-2 border rounded focus:outline-blue-500 bg-white text-gray-800"
-              onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
+              className="w-full p-2 border rounded focus:outline-purple-500 bg-white text-gray-800"
+              onChange={handleChange}
               required 
             />
           </div>
@@ -117,15 +142,21 @@ export default function CreateJob() {
           <label className="block text-gray-700 font-medium mb-1">Description</label>
           <textarea 
             rows="4" 
+            name="description"
+            value={formData.description}
             placeholder="Job requirements and details..." 
-            className="w-full p-2 border rounded focus:outline-blue-500 bg-white text-gray-800"
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            className="w-full p-2 border rounded focus:outline-purple-500 bg-white text-gray-800"
+            onChange={handleChange}
             required
           ></textarea>
         </div>
 
-        <button type="submit" className="w-full bg-purple-600 text-white py-2 rounded font-semibold hover:bg-purple-700 transition">
-          Publish Job
+        <button 
+          type="submit" 
+          disabled={loading}
+          className="w-full bg-purple-600 text-white py-2 rounded font-semibold hover:bg-purple-700 transition disabled:opacity-50"
+        >
+          {loading ? 'Publishing...' : 'Publish Job'}
         </button>
       </form>
     </div>
