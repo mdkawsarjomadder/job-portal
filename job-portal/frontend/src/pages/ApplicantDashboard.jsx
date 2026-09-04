@@ -8,15 +8,25 @@ export default function ApplicantDashboard() {
   const [jobs, setJobs] = useState([]);
   const [appliedJobs, setAppliedJobs] = useState([]);
   const [activeTab, setActiveTab] = useState('browse');
+  const [selectedJob, setSelectedJob] = useState(null);
+  const [resumeFile, setResumeFile] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  // Loading & Toast Notification States
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState('success');
+
+  // Search & Filter States
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All');
 
   useEffect(() => {
-    // ১. ইউজার ডাটা ফেচ
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
 
-    // ২. জব এবং অ্যাপ্লিকেশন লোড
     fetchJobs();
     fetchMyApplications();
   }, []);
@@ -44,33 +54,65 @@ export default function ApplicantDashboard() {
     }
   };
 
-  const handleApply = async (job) => {
-    const token = localStorage.getItem('token');
+  // ৪ সেকেন্ডের জন্য টোস্ট অ্যালার্ট দেখানোর হেলপার ফাংশন
+  const showToast = (message, type = 'success') => {
+    setToastMessage(message);
+    setToastType(type);
 
+    setTimeout(() => {
+      setToastMessage('');
+    }, 4000);
+  };
+
+  // ১. Apply Now বাটনে ক্লিক করলে ফাইল আপলোডের মোডাল ওপেন হবে
+  const handleApplyClick = (job) => {
+    const token = localStorage.getItem('token');
     if (!token) {
-      alert('Please login to apply');
+      showToast('Please login to apply', 'error');
+      return;
+    }
+    setSelectedJob(job);
+    setIsModalOpen(true);
+  };
+
+  // ২. ফাইলসহ ফর্ম সাবমিট করার ফাংশন
+  const handleFormSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!resumeFile) {
+      showToast('Please select a PDF resume file first!', 'error');
       return;
     }
 
-    try {
-      const res = await axios.post(
-        'http://localhost:5000/api/jobs/apply',
-        {
-          jobId: job.id,
-          resumeUrl: 'https://example.com/my-resume.pdf',
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+    const token = localStorage.getItem('token');
+    
+    const formData = new FormData();
+    formData.append('jobId', selectedJob.id);
+    formData.append('resume', resumeFile);
 
-      alert(res.data.message);
-      fetchMyApplications(); // আবেদন সফল হলে সাথে সাথে তালিকা রিফ্রেশ হবে
+    setIsSubmitting(true);
+
+    try {
+      const res = await axios.post('http://localhost:5000/api/jobs/apply', formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      setIsSubmitting(false);
+      setIsModalOpen(false);
+      setResumeFile(null);
+      setSelectedJob(null);
+      fetchMyApplications();
+
+      // ৪ সেকেন্ডের অটো-ক্লোজিং টোস্ট কল করা
+      showToast(res.data.message || 'Applied successfully with uploaded resume!', 'success');
+
     } catch (err) {
+      setIsSubmitting(false);
       console.error('Application Error:', err);
-      alert(err.response?.data?.message || 'Failed to apply');
+      showToast(err.response?.data?.message || 'Failed to apply', 'error');
     }
   };
 
@@ -80,8 +122,40 @@ export default function ApplicantDashboard() {
     navigate('/login');
   };
 
+  // Search & Category Filter Logic
+  const filteredJobs = jobs.filter((job) => {
+    const query = searchTerm.trim().toLowerCase();
+
+    const titleMatch = job?.title ? job.title.toLowerCase().includes(query) : false;
+    const locationMatch = job?.location ? job.location.toLowerCase().includes(query) : false;
+    const categoryMatch = job?.category ? job.category.toLowerCase().includes(query) : false;
+
+    const matchesSearch = query === '' || titleMatch || locationMatch || categoryMatch;
+
+    const matchesCategoryDropdown =
+      selectedCategory === 'All' ||
+      (job?.category && job.category.toLowerCase() === selectedCategory.toLowerCase());
+
+    return matchesSearch && matchesCategoryDropdown;
+  });
+
   return (
-    <div className="min-h-screen bg-gray-50 p-6 text-left">
+    <div className="min-h-screen bg-gray-50 p-6 text-left relative">
+      
+      {/* 💡 Custom 4-Second Auto Closing Toast Notification */}
+      {toastMessage && (
+        <div className="fixed top-5 right-5 z-50 animate-bounce">
+          <div
+            className={`px-5 py-3 rounded-xl shadow-lg text-white text-sm font-semibold flex items-center gap-2 ${
+              toastType === 'success' ? 'bg-green-600' : 'bg-red-600'
+            }`}
+          >
+            <span>{toastType === 'success' ? '✓' : '✕'}</span>
+            <span>{toastMessage}</span>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-5xl mx-auto space-y-6">
         
         {/* Profile Header Card */}
@@ -131,14 +205,38 @@ export default function ApplicantDashboard() {
         {/* Tab Content */}
         {activeTab === 'browse' ? (
           <div className="space-y-4">
+
+            {/* Search Bar & Category Select */}
+            <div className="flex flex-col md:flex-row gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+              <input
+                type="text"
+                placeholder="Search by job title, location, or category..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="flex-1 border border-gray-300 rounded-lg p-2.5 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+              />
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="border border-gray-300 rounded-lg p-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+              >
+                <option value="All">All Categories</option>
+                <option value="IT">IT / Software</option>
+                <option value="Dev Developer">Dev Developer</option>
+                <option value="Design">Design</option>
+                <option value="Marketing">Marketing</option>
+              </select>
+            </div>
+
             <h2 className="text-xl font-bold text-gray-800">Available Job Openings</h2>
-            {jobs.length === 0 ? (
+            
+            {filteredJobs.length === 0 ? (
               <div className="bg-white p-8 text-center text-gray-500 rounded-xl border border-gray-200">
-                No jobs posted yet.
+                No matching jobs found.
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {jobs.map((job) => (
+                {filteredJobs.map((job) => (
                   <div key={job.id} className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition">
                     <div className="flex justify-between items-start">
                       <div>
@@ -157,7 +255,7 @@ export default function ApplicantDashboard() {
                     </div>
 
                     <button
-                      onClick={() => handleApply(job)}
+                      onClick={() => handleApplyClick(job)}
                       className="mt-5 w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 rounded-lg transition duration-200"
                     >
                       Apply Now
@@ -194,7 +292,15 @@ export default function ApplicantDashboard() {
                           {new Date(app.appliedAt).toLocaleDateString()}
                         </td>
                         <td className="p-4">
-                          <span className="px-2.5 py-1 bg-yellow-100 text-yellow-800 text-xs font-semibold rounded-full">
+                          <span
+                            className={`px-2.5 py-1 text-xs font-semibold rounded-full ${
+                              app.status === 'SHORTLISTED'
+                                ? 'bg-green-100 text-green-700'
+                                : app.status === 'REJECTED'
+                                ? 'bg-red-100 text-red-700'
+                                : 'bg-yellow-100 text-yellow-800'
+                            }`}
+                          >
                             {app.status}
                           </span>
                         </td>
@@ -208,6 +314,60 @@ export default function ApplicantDashboard() {
         )}
 
       </div>
+
+      {/* File Upload Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center p-4 z-50">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl space-y-4">
+            <div className="flex justify-between items-center border-b pb-3">
+              <h3 className="font-bold text-lg text-gray-800">
+                Apply for <span className="text-purple-600">{selectedJob?.title}</span>
+              </h3>
+              <button 
+                onClick={() => setIsModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 text-lg font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleFormSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Upload Your Resume (PDF format)
+                </label>
+                <input
+                  type="file"
+                  accept=".pdf"
+                  onChange={(e) => setResumeFile(e.target.files[0])}
+                  className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 border border-gray-300 rounded-lg p-1.5"
+                  required
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className={`px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium transition ${
+                    isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-purple-700'
+                  }`}
+                >
+                  {isSubmitting ? 'Uploading...' : 'Submit Application'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
