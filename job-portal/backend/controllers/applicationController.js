@@ -1,17 +1,25 @@
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
-// ১. জবে আবেদন করা (Apply for Job)
+// ১. জবে আবেদন করা (Apply for Job with Resume File)
 export const applyForJob = async (req, res) => {
   try {
-    const { jobId, resumeUrl } = req.body;
-    const applicantId = req.user?.id; // Auth Middleware থেকে প্রাপ্ত ID
+    const { jobId } = req.body;
+    const applicantId = req.user?.id; // Auth Middleware ID
 
     if (!jobId) {
       return res.status(400).json({ message: 'Job ID is required' });
     }
 
-    // আগে আবেদন করা হয়েছে কিনা চেক করা
+    // ফাইল আপলোড হয়েছে কিনা চেক
+    if (!req.file) {
+      return res.status(400).json({ message: 'Please upload a PDF resume file' });
+    }
+
+    // আপলোড হওয়া ফাইলের পাবলিক URL তৈরি
+    const resumeUrl = `http://localhost:5000/uploads/${req.file.filename}`;
+
+    // আগে আবেদন করা হয়েছে কিনা চেক করা
     const existingApplication = await prisma.application.findUnique({
       where: {
         jobId_applicantId: {
@@ -30,12 +38,12 @@ export const applyForJob = async (req, res) => {
       data: {
         jobId,
         applicantId,
-        resumeUrl: resumeUrl || 'https://example.com/default-resume.pdf',
+        resumeUrl,
         status: 'PENDING',
       },
     });
 
-    res.status(201).json({ message: 'Applied successfully!', application });
+    res.status(201).json({ message: 'Applied successfully with uploaded resume!', application });
   } catch (error) {
     console.error('Apply Error:', error);
     res.status(500).json({ message: error.message || 'Error applying for job' });

@@ -46,11 +46,10 @@ export const getAllJobs = async (req, res) => {
   }
 };
 
-
-// ১. Employer তার নিজের পোস্ট করা জব এবং প্রতিটি জবে জমা পড়া আবেদন দেখবে
+// ৩. Employer তার নিজের পোস্ট করা জব এবং জমা পড়া আবেদনসমূহ রেজুমিসহ দেখবে
 export const getEmployerJobsWithApplications = async (req, res) => {
   try {
-    const employerId = req.user.id;
+    const employerId = req.user?.id;
 
     const jobs = await prisma.job.findMany({
       where: { employerId },
@@ -61,6 +60,7 @@ export const getEmployerJobsWithApplications = async (req, res) => {
               select: { id: true, name: true, email: true },
             },
           },
+          orderBy: { appliedAt: 'desc' },
         },
       },
       orderBy: { createdAt: 'desc' },
@@ -68,11 +68,12 @@ export const getEmployerJobsWithApplications = async (req, res) => {
 
     res.status(200).json(jobs);
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching employer jobs', error: error.message });
+    console.error('Error fetching employer jobs:', error);
+    res.status(500).json({ message: 'Error fetching jobs', error: error.message });
   }
 };
 
-// ২. Employer কোনো আবেদনের স্ট্যাটাস (SHORTLISTED / REJECTED) আপডেট করবে
+// ৪. Employer আবেদনের স্ট্যাটাস (SHORTLISTED / REJECTED) আপডেট করবে
 export const updateApplicationStatus = async (req, res) => {
   try {
     const { applicationId } = req.params;
@@ -86,5 +87,79 @@ export const updateApplicationStatus = async (req, res) => {
     res.status(200).json({ message: 'Status updated successfully', updatedApplication });
   } catch (error) {
     res.status(500).json({ message: 'Error updating status', error: error.message });
+  }
+};
+
+
+//Update cretae------------------------|
+
+// ১. পোস্ট করা জব এডিট করা (Only Employer & Job Owner)
+export const updateJob = async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    const { title, description, category, location, salary, jobType } = req.body;
+
+    // জবটি ডাটাবেজে আছে কিনা তা চেক করা
+    const existingJob = await prisma.job.findUnique({
+      where: { id: jobId },
+    });
+
+    if (!existingJob) {
+      return res.status(404).json({ message: 'Job not found' });
+    }
+
+    // চেক করা যে ইউজার এই জবের অনার (Owner) কিনা
+    if (existingJob.employerId !== req.user.id) {
+      return res.status(403).json({ message: 'Unauthorized to update this job' });
+    }
+
+    const updatedJob = await prisma.job.update({
+      where: { id: jobId },
+      data: {
+        title,
+        description,
+        category,
+        location,
+        salary,
+        jobType,
+      },
+    });
+
+    res.status(200).json({ message: 'Job updated successfully', updatedJob });
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating job', error: error.message });
+  }
+};
+
+// ২. পোস্ট করা জব ডিলিট করা (Only Employer & Job Owner)
+export const deleteJob = async (req, res) => {
+  try {
+    const { jobId } = req.params;
+
+    const existingJob = await prisma.job.findUnique({
+      where: { id: jobId },
+    });
+
+    if (!existingJob) {
+      return res.status(404).json({ message: 'Job not found' });
+    }
+
+    if (existingJob.employerId !== req.user.id) {
+      return res.status(403).json({ message: 'Unauthorized to delete this job' });
+    }
+
+    // প্রথমে এই জবে জমা হওয়া সব অ্যাপ্লিকেশন মুছে ফেলা
+    await prisma.application.deleteMany({
+      where: { jobId },
+    });
+
+    // এরপর মূল জবটি ডিলিট করা
+    await prisma.job.delete({
+      where: { id: jobId },
+    });
+
+    res.status(200).json({ message: 'Job deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error deleting job', error: error.message });
   }
 };
