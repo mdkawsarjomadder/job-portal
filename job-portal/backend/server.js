@@ -21,6 +21,7 @@ app.use(express.json());
 app.use('/api/auth', authRouter);
 app.use('/api/jobs', jobRoutes);
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static('uploads'));
 
 app.get('/',(req,res) => {
     res.send('Job Portal API is running successfully!');

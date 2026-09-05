@@ -5,26 +5,26 @@ const prisma = new PrismaClient();
 export const applyForJob = async (req, res) => {
   try {
     const { jobId } = req.body;
-    const applicantId = req.user?.id; // Auth Middleware ID
+    const applicantId = req.user?.id; // Auth Middleware থেকে প্রাপ্ত ID
 
     if (!jobId) {
       return res.status(400).json({ message: 'Job ID is required' });
     }
 
-    // ফাইল আপলোড হয়েছে কিনা চেক
+    // ফাইল আপলোড হয়েছে কিনা চেক
     if (!req.file) {
       return res.status(400).json({ message: 'Please upload a PDF resume file' });
     }
 
-    // আপলোড হওয়া ফাইলের পাবলিক URL তৈরি
-    const resumeUrl = `http://localhost:5000/uploads/${req.file.filename}`;
+    // ডাইনামিক হোস্ট ইউআরএল তৈরি (যেমন: http://localhost:5000/uploads/filename.pdf)
+    const resumeUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
 
     // আগে আবেদন করা হয়েছে কিনা চেক করা
     const existingApplication = await prisma.application.findUnique({
       where: {
         jobId_applicantId: {
-          jobId,
-          applicantId,
+          jobId: jobId, // schema অনুযায়ী jobId string বা int হ্যান্ডেল করবে
+          applicantId: applicantId,
         },
       },
     });
@@ -36,9 +36,9 @@ export const applyForJob = async (req, res) => {
     // নতুন অ্যাপ্লিকেশন ডাটাবেজে তৈরি
     const application = await prisma.application.create({
       data: {
-        jobId,
-        applicantId,
-        resumeUrl,
+        jobId: jobId,
+        applicantId: applicantId,
+        resumeUrl: resumeUrl,
         status: 'PENDING',
       },
     });

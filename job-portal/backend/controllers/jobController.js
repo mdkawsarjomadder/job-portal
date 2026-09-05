@@ -1,4 +1,6 @@
 import { PrismaClient } from '@prisma/client';
+import { sendStatusEmail } from '../utils/email.js';
+
 const prisma = new PrismaClient();
 
 // ১. নতুন জব পোস্ট করা (Only EMPLOYER)
@@ -29,10 +31,39 @@ export const createJob = async (req, res) => {
   }
 };
 
-// ২. সব জবের তালিকা পড়া
+
+// জবের তালিকা পাওয়া এবং নিখুঁত সার্চ/ফিল্টার সাপোর্ট করা
 export const getAllJobs = async (req, res) => {
   try {
+    const { search, category, location, jobType } = req.query;
+
+    const whereClause = {};
+
+    // ১. সার্চ কিওয়ার্ড (Title বা Description-এ খোঁজাবে)
+    if (search && search.trim() !== '') {
+      whereClause.OR = [
+        { title: { contains: search.trim(), mode: 'insensitive' } },
+        { description: { contains: search.trim(), mode: 'insensitive' } },
+      ];
+    }
+
+    // ২. ক্যাটাগরি ফিল্টার
+    if (category && category.trim() !== '') {
+      whereClause.category = { contains: category.trim(), mode: 'insensitive' };
+    }
+
+    // ৩. লোকেশন ফিল্টার
+    if (location && location.trim() !== '') {
+      whereClause.location = { contains: location.trim(), mode: 'insensitive' };
+    }
+
+    // ৪. জব টাইপ ফিল্টার (Case-insensitive matching)
+    if (jobType && jobType.trim() !== '') {
+      whereClause.jobType = { contains: jobType.trim(), mode: 'insensitive' };
+    }
+
     const jobs = await prisma.job.findMany({
+      where: whereClause,
       include: {
         employer: {
           select: { name: true, email: true },
@@ -40,6 +71,7 @@ export const getAllJobs = async (req, res) => {
       },
       orderBy: { createdAt: 'desc' },
     });
+
     res.status(200).json(jobs);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching jobs', error: error.message });
@@ -77,14 +109,32 @@ export const getEmployerJobsWithApplications = async (req, res) => {
 export const updateApplicationStatus = async (req, res) => {
   try {
     const { applicationId } = req.params;
-    const { status } = req.body; // 'SHORTLISTED' or 'REJECTED'
+    const { status } = req.body;
 
     const updatedApplication = await prisma.application.update({
       where: { id: applicationId },
       data: { status },
+      include: {
+        applicant: {select: {name: true, email: true}},
+        job: {select: {title: true}},
+      }
     });
 
-    res.status(200).json({ message: 'Status updated successfully', updatedApplication });
+    //backend send email-------
+    if(updateApplicationStatus.applicant?.email)
+    {
+      sendStatusEmail
+      (
+        updateApplicationStatus.applicant.email,
+        updateApplicationStatus.applicant.name,
+        updateApplicationStatus.job.title,
+        status
+      );
+    }
+
+    res.status(200).json(
+      { message: 'Status updated and email notification initiated'
+        , updatedApplication });
   } catch (error) {
     res.status(500).json({ message: 'Error updating status', error: error.message });
   }
