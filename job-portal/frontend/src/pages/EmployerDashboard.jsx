@@ -10,7 +10,7 @@ export default function EmployerDashboard() {
   // Modals state
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [deleteJobId, setDeleteJobId] = useState(null);
-  const [editingJob, setEditingJob] = useState(null); // holds job object being edited
+  const [editingJob, setEditingJob] = useState(null);
 
   // Form state for editing job
   const [editFormData, setEditFormData] = useState({
@@ -44,7 +44,6 @@ export default function EmployerDashboard() {
     }
   };
 
-  // Status update for applications
   const handleStatusUpdate = async (applicationId, status) => {
     const token = localStorage.getItem('token');
     try {
@@ -59,7 +58,6 @@ export default function EmployerDashboard() {
     }
   };
 
-  // Open Edit Modal
   const handleOpenEditModal = (job) => {
     setEditingJob(job);
     setEditFormData({
@@ -72,7 +70,6 @@ export default function EmployerDashboard() {
     });
   };
 
-  // Submit Edit Job Form
   const handleUpdateJob = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem('token');
@@ -87,7 +84,6 @@ export default function EmployerDashboard() {
     }
   };
 
-  // Confirm Delete Job
   const handleConfirmDeleteJob = async () => {
     if (!deleteJobId) return;
     const token = localStorage.getItem('token');
@@ -102,14 +98,12 @@ export default function EmployerDashboard() {
     }
   };
 
-  // Confirm Logout
   const confirmLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     navigate('/login');
   };
 
-  // Stats Calculations
   const totalJobs = jobsWithApps.length;
   const totalApplicants = jobsWithApps.reduce((acc, job) => acc + (job.applications?.length || 0), 0);
   const shortlistedCount = jobsWithApps.reduce(
@@ -122,7 +116,7 @@ export default function EmployerDashboard() {
       <div className="max-w-6xl mx-auto space-y-8">
         
         {/* Navbar Header */}
-        <div className="bg-gradient-to-r from-purple-900 via-indigo-800 to-purple-900 text-white p-6 rounded-2xl shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="bg-gradient-to-r from-purple-900 via-indigo-800 to-purple-900 text-white p-6 rounded-2xl shadow-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-white/10 backdrop-blur-md text-white border border-white/20 font-bold text-xl rounded-xl flex items-center justify-center uppercase shadow-inner">
               {user?.name ? user.name[0] : 'E'}
@@ -138,16 +132,17 @@ export default function EmployerDashboard() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 w-full md:w-auto">
+          <div className="flex items-center gap-3 w-full sm:w-auto shrink-0">
             <Link
               to="/create-job"
-              className="flex-1 md:flex-initial text-center px-5 py-2.5 bg-purple-500 hover:bg-purple-600 text-white font-medium text-sm rounded-xl transition-all shadow-md hover:shadow-lg border border-purple-400/30"
+              className="flex-1 sm:flex-initial text-center px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm rounded-xl transition-all shadow-md hover:shadow-lg border border-purple-400/40 whitespace-nowrap"
             >
               + Post New Job
             </Link>
             <button
+              type="button"
               onClick={() => setShowLogoutModal(true)}
-              className="px-4 py-2.5 bg-rose-500/20 hover:bg-rose-500/40 text-rose-200 hover:text-white border border-rose-400/30 font-medium text-sm rounded-xl transition-all flex items-center gap-2 backdrop-blur-sm"
+              className="px-4 py-2.5 bg-rose-500/20 hover:bg-rose-500/40 text-rose-200 hover:text-white border border-rose-400/30 font-semibold text-sm rounded-xl transition-all flex items-center gap-2 backdrop-blur-sm shrink-0"
             >
               <span>🚪</span>
               <span>Logout</span>
@@ -194,7 +189,7 @@ export default function EmployerDashboard() {
             jobsWithApps.map((job) => (
               <div key={job.id} className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
                 
-                {/* Job Info Banner with Edit & Delete Actions */}
+                {/* Job Info Banner */}
                 <div className="p-6 bg-slate-50/50 border-b border-slate-100 flex flex-col md:flex-row justify-between md:items-center gap-4">
                   <div>
                     <div className="flex items-center gap-3">
@@ -218,15 +213,16 @@ export default function EmployerDashboard() {
                     </div>
                   </div>
 
-                  {/* 💡 Edit & Delete Buttons */}
                   <div className="flex items-center gap-2">
                     <button
+                      type="button"
                       onClick={() => handleOpenEditModal(job)}
                       className="px-3 py-1.5 bg-slate-200/80 hover:bg-slate-300/80 text-slate-700 text-xs font-semibold rounded-lg transition flex items-center gap-1"
                     >
                       ✏️ Edit
                     </button>
                     <button
+                      type="button"
                       onClick={() => setDeleteJobId(job.id)}
                       className="px-3 py-1.5 bg-rose-100 hover:bg-rose-200 text-rose-700 text-xs font-semibold rounded-lg transition flex items-center gap-1"
                     >
@@ -300,6 +296,7 @@ export default function EmployerDashboard() {
                             <td className="py-4 px-6 text-right">
                               <div className="flex items-center justify-end gap-2">
                                 <button
+                                  type="button"
                                   onClick={() => handleStatusUpdate(app.id, 'SHORTLISTED')}
                                   disabled={app.status === 'SHORTLISTED'}
                                   className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-medium rounded-lg transition shadow-sm"
@@ -307,6 +304,7 @@ export default function EmployerDashboard() {
                                   Shortlist
                                 </button>
                                 <button
+                                  type="button"
                                   onClick={() => handleStatusUpdate(app.id, 'REJECTED')}
                                   disabled={app.status === 'REJECTED'}
                                   className="px-3 py-1.5 bg-rose-500 hover:bg-rose-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-medium rounded-lg transition shadow-sm"
@@ -328,13 +326,14 @@ export default function EmployerDashboard() {
 
       </div>
 
-      {/* 💡 Edit Job Modal */}
+      {/* Edit Job Modal */}
       {editingJob && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 border border-slate-100">
             <div className="flex justify-between items-center border-b border-slate-100 pb-3">
               <h3 className="text-lg font-bold text-slate-800">Edit Job Listing</h3>
               <button
+                type="button"
                 onClick={() => setEditingJob(null)}
                 className="text-slate-400 hover:text-slate-600 text-lg font-bold"
               >
@@ -428,7 +427,7 @@ export default function EmployerDashboard() {
         </div>
       )}
 
-      {/* 💡 Delete Confirmation Modal */}
+      {/* Delete Confirmation Modal */}
       {deleteJobId && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-center border border-slate-100">
@@ -443,12 +442,14 @@ export default function EmployerDashboard() {
             </div>
             <div className="flex gap-3 pt-2">
               <button
+                type="button"
                 onClick={() => setDeleteJobId(null)}
                 className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-sm rounded-xl transition"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleConfirmDeleteJob}
                 className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-medium text-sm rounded-xl transition shadow-sm"
               >
@@ -459,7 +460,7 @@ export default function EmployerDashboard() {
         </div>
       )}
 
-      {/* Logout Confirmation Modal */}
+      {/* Logout Confirmation Modal (Cancel on Left, Logout on Right) */}
       {showLogoutModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-center border border-slate-100">
@@ -472,12 +473,14 @@ export default function EmployerDashboard() {
             </div>
             <div className="flex gap-3 pt-2">
               <button
+                type="button"
                 onClick={() => setShowLogoutModal(false)}
                 className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-sm rounded-xl transition"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={confirmLogout}
                 className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-medium text-sm rounded-xl transition shadow-sm"
               >

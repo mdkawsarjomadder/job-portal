@@ -57,107 +57,127 @@ export default function CreateJob() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex justify-center items-center p-6 text-left">
-      <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-md w-full max-w-lg">
-        <h2 className="text-2xl font-bold mb-6 text-gray-800 text-center">Post a New Job</h2>
+    <div className="min-h-screen bg-slate-100 flex justify-center items-center p-4 md:p-6 text-left font-sans">
+      <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden border border-slate-100">
         
-        {message && (
-          <p className={`mb-4 text-center font-semibold p-2 rounded ${
-            message.toLowerCase().includes('success') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'
-          }`}>
-            {message}
-          </p>
-        )}
-
-        <div className="mb-4">
-          <label className="block text-gray-700 font-medium mb-1">Job Title</label>
-          <input 
-            type="text" 
-            name="title"
-            value={formData.title}
-            placeholder="e.g. Frontend Developer" 
-            className="w-full p-2 border rounded focus:outline-purple-500 bg-white text-gray-800"
-            onChange={handleChange}
-            required 
-          />
+        {/* Gradient Header Box */}
+        <div className="bg-gradient-to-r from-purple-900 via-indigo-800 to-purple-900 text-white p-6 text-center">
+          <h2 className="text-2xl font-bold">Post a New Job</h2>
+          <p className="text-xs text-purple-200 mt-1">Fill out the form below to create a new career opportunity</p>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="p-6 md:p-8 space-y-4">
+          {message && (
+            <p className={`p-3 rounded-xl text-sm font-semibold text-center ${
+              message.toLowerCase().includes('success') 
+                ? 'bg-emerald-100/80 text-emerald-700 border border-emerald-200' 
+                : 'bg-rose-100/80 text-rose-700 border border-rose-200'
+            }`}>
+              {message}
+            </p>
+          )}
+
           <div>
-            <label className="block text-gray-700 font-medium mb-1">Category</label>
+            <label className="block text-slate-700 font-semibold text-sm mb-1">Job Title</label>
             <input 
               type="text" 
-              name="category"
-              value={formData.category}
-              placeholder="e.g. Software" 
-              className="w-full p-2 border rounded focus:outline-purple-500 bg-white text-gray-800"
+              name="title"
+              value={formData.title}
+              placeholder="e.g. Frontend Developer" 
+              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-purple-600 bg-white text-slate-800 text-sm"
               onChange={handleChange}
               required 
             />
           </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-slate-700 font-semibold text-sm mb-1">Category</label>
+              <input 
+                type="text" 
+                name="category"
+                value={formData.category}
+                placeholder="e.g. Software" 
+                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-purple-600 bg-white text-slate-800 text-sm"
+                onChange={handleChange}
+                required 
+              />
+            </div>
+            <div>
+              <label className="block text-slate-700 font-semibold text-sm mb-1">Job Type</label>
+              <select 
+                name="jobType"
+                value={formData.jobType}
+                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-purple-600 bg-white text-slate-800 text-sm"
+                onChange={handleChange}
+              >
+                <option value="Full-time">Full-time</option>
+                <option value="Part-time">Part-time</option>
+                <option value="Remote">Remote</option>
+                <option value="Contract">Contract</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-slate-700 font-semibold text-sm mb-1">Location</label>
+              <input 
+                type="text" 
+                name="location"
+                value={formData.location}
+                placeholder="e.g. Dhaka / Remote" 
+                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-purple-600 bg-white text-slate-800 text-sm"
+                onChange={handleChange}
+                required 
+              />
+            </div>
+            <div>
+              <label className="block text-slate-700 font-semibold text-sm mb-1">Salary</label>
+              <input 
+                type="text" 
+                name="salary"
+                value={formData.salary}
+                placeholder="e.g. $50,000/year" 
+                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-purple-600 bg-white text-slate-800 text-sm"
+                onChange={handleChange}
+                required 
+              />
+            </div>
+          </div>
+
           <div>
-            <label className="block text-gray-700 font-medium mb-1">Job Type</label>
-            <select 
-              name="jobType"
-              value={formData.jobType}
-              className="w-full p-2 border rounded focus:outline-purple-500 bg-white text-gray-800"
+            <label className="block text-slate-700 font-semibold text-sm mb-1">Description</label>
+            <textarea 
+              rows="4" 
+              name="description"
+              value={formData.description}
+              placeholder="Job requirements and details..." 
+              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-purple-600 bg-white text-slate-800 text-sm"
               onChange={handleChange}
+              required
+            ></textarea>
+          </div>
+
+          {/* Action Buttons: Cancel on Left, Submit on Right */}
+          <div className="flex gap-3 pt-2">
+            <button 
+              type="button" 
+              onClick={() => navigate('/dashboard')}
+              className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-xl transition"
             >
-              <option value="Full-time">Full-time</option>
-              <option value="Part-time">Part-time</option>
-              <option value="Remote">Remote</option>
-              <option value="Contract">Contract</option>
-            </select>
+              Cancel
+            </button>
+            <button 
+              type="submit" 
+              disabled={loading}
+              className="flex-1 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold py-2.5 rounded-xl transition shadow-md hover:shadow-lg disabled:opacity-50"
+            >
+              {loading ? 'Publishing...' : 'Publish Job'}
+            </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div>
-            <label className="block text-gray-700 font-medium mb-1">Location</label>
-            <input 
-              type="text" 
-              name="location"
-              value={formData.location}
-              placeholder="e.g. Dhaka / Remote" 
-              className="w-full p-2 border rounded focus:outline-purple-500 bg-white text-gray-800"
-              onChange={handleChange}
-              required 
-            />
-          </div>
-          <div>
-            <label className="block text-gray-700 font-medium mb-1">Salary</label>
-            <input 
-              type="text" 
-              name="salary"
-              value={formData.salary}
-              placeholder="e.g. $50,000/year" 
-              className="w-full p-2 border rounded focus:outline-purple-500 bg-white text-gray-800"
-              onChange={handleChange}
-              required 
-            />
-          </div>
-        </div>
-
-        <div className="mb-6">
-          <label className="block text-gray-700 font-medium mb-1">Description</label>
-          <textarea 
-            rows="4" 
-            name="description"
-            value={formData.description}
-            placeholder="Job requirements and details..." 
-            className="w-full p-2 border rounded focus:outline-purple-500 bg-white text-gray-800"
-            onChange={handleChange}
-            required
-          ></textarea>
-        </div>
-
-        <button 
-          type="submit" 
-          disabled={loading}
-          className="w-full bg-purple-600 text-white py-2 rounded font-semibold hover:bg-purple-700 transition disabled:opacity-50"
-        >
-          {loading ? 'Publishing...' : 'Publish Job'}
-        </button>
       </form>
     </div>
   );
