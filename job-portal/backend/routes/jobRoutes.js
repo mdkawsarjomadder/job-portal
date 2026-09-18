@@ -17,7 +17,9 @@ const router = express.Router();
 // 1. Static & Profile Routes 
 router.get('/', getAllJobs);
 router.get('/profile', authenticateToken, getProfile);
-router.put('/profile', authenticateToken, updateProfile);
+
+// 💡 🔄 এখানে upload.single('avatar') যুক্ত করা হয়েছে
+router.put('/profile', authenticateToken, upload.single('avatar'), updateProfile);
 
 // 2. Application & Employer Routes
 router.post('/apply', authenticateToken, upload.single('resume'), applyForJob); 
@@ -30,4 +32,4 @@ router.post('/', authenticateToken, createJob);
 router.put('/:jobId', authenticateToken, updateJob);
 router.delete('/:jobId', authenticateToken, deleteJob);
 
-export default router; 
+export default router;

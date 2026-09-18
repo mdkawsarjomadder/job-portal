@@ -15,6 +15,7 @@ export const getProfile = async (req, res) => {
         phone: true,
         skills: true,
         resumeUrl: true,
+        avatar: true, // 👈 avatar সিলেক্ট যুক্ত করা হয়েছে
       },
     });
 
@@ -33,9 +34,21 @@ export const updateProfile = async (req, res) => {
   try {
     const { name, phone, skills, resumeUrl } = req.body;
 
+    // 📷 যদি নতুন ছবি আপলোড করা হয়ে থাকে তবে তার URL তৈরি করুন
+    let avatarUrl = req.body.avatar;
+    if (req.file) {
+      avatarUrl = `http://localhost:5000/uploads/${req.file.filename}`;
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id: req.user.id },
-      data: { name, phone, skills, resumeUrl },
+      data: { 
+        name, 
+        phone, 
+        skills, 
+        resumeUrl,
+        ...(avatarUrl && { avatar: avatarUrl }), // 👈 যদি avatarUrl থাকে তবেই সেভ হবে
+      },
       select: {
         id: true,
         name: true,
@@ -44,6 +57,7 @@ export const updateProfile = async (req, res) => {
         phone: true,
         skills: true,
         resumeUrl: true,
+        avatar: true, // 👈 রিটার্ন রেসপন্সে avatar যুক্ত করা হয়েছে
       },
     });
 

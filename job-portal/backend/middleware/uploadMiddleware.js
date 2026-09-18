@@ -12,15 +12,20 @@ const storage = multer.diskStorage({
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    // Date.now() ব্র্যাকেট সহ ব্যবহার করা হয়েছে
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
     cb(null, `${file.fieldname}-${uniqueSuffix}${path.extname(file.originalname)}`);
   },
 });
 
-// PDF and Word Document Filter
+// Image, PDF & Word Document Filter (ছবি ও ফাইল দুইটারই সাপোর্ট রাখা হলো)
 const fileFilter = (req, file, cb) => {
   const allowedTypes = [
+    // Image Formats
+    'image/jpeg',
+    'image/jpg',
+    'image/png',
+    'image/webp',
+    // Document Formats
     'application/pdf',
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -29,7 +34,7 @@ const fileFilter = (req, file, cb) => {
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Only .pdf, .doc and .docx formats are allowed!'), false);
+    cb(new Error('Only images (.jpg, .png, .webp) and documents (.pdf, .doc, .docx) are allowed!'), false);
   }
 };
 
