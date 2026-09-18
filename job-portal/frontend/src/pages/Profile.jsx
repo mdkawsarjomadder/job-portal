@@ -10,7 +10,11 @@ export default function Profile() {
     phone: '',
     skills: '',
     resumeUrl: '',
+    avatar: '',
   });
+  
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [previewAvatar, setPreviewAvatar] = useState('');
   const [initialData, setInitialData] = useState({});
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -32,9 +36,11 @@ export default function Profile() {
         phone: res.data.phone || '',
         skills: res.data.skills || '',
         resumeUrl: res.data.resumeUrl || '',
+        avatar: res.data.avatar || '',
       };
       setFormData(data);
       setInitialData(data);
+      setPreviewAvatar(res.data.avatar || '');
     } catch (err) {
       console.error('Error fetching profile:', err);
     } finally {
@@ -42,11 +48,19 @@ export default function Profile() {
     }
   };
 
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setAvatarFile(file);
+      setPreviewAvatar(URL.createObjectURL(file));
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (isSubmitting) return;
 
-    const isUnchanged = JSON.stringify(formData) === JSON.stringify(initialData);
+    const isUnchanged = JSON.stringify(formData) === JSON.stringify(initialData) && !avatarFile;
     if (isUnchanged) {
       setMessage({ type: 'info', text: 'Profile is already saved and up to date!' });
       setTimeout(() => setMessage({ type: '', text: '' }), 3000);
@@ -57,17 +71,41 @@ export default function Profile() {
     const token = localStorage.getItem('token');
     setMessage({ type: '', text: '' });
 
+    const data = new FormData();
+    data.append('name', formData.name);
+    data.append('phone', formData.phone);
+    data.append('skills', formData.skills);
+    data.append('resumeUrl', formData.resumeUrl);
+    if (avatarFile) {
+      data.append('avatar', avatarFile);
+    }
+
     try {
-      await axios.put('http://localhost:5000/api/jobs/profile', formData, {
-        headers: { Authorization: `Bearer ${token}` },
+      const res = await axios.put('http://localhost:5000/api/jobs/profile', data, {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
       });
 
+      const updatedAvatar = res.data.user?.avatar || res.data.avatar || formData.avatar;
+
+      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const updatedUser = { 
+        ...storedUser, 
+        name: formData.name, 
+        avatar: updatedAvatar 
+      };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+
       setMessage({ type: 'success', text: 'Profile updated successfully!' });
-      setInitialData(formData);
+      setInitialData({ ...formData, avatar: updatedAvatar });
+      setAvatarFile(null);
 
       setTimeout(() => {
         setMessage({ type: '', text: '' });
-      }, 3000);
+        navigate('/dashboard');
+      }, 1500);
     } catch (err) {
       setMessage({
         type: 'error',
@@ -75,7 +113,7 @@ export default function Profile() {
       });
 
       setTimeout(() => {
-        setMessage({ type: '', text: '' });
+        setMessage({ type: '', text: '' }), 3000;
       }, 3000);
     } finally {
       setIsSubmitting(false);
@@ -89,16 +127,16 @@ export default function Profile() {
   return (
     <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans text-left relative flex justify-center items-center">
       
-      {/* 🔴 Top Floating Toast Alert */}
+      {/* Toast Alert (No border/shadow) */}
       {message.text && (
         <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 animate-bounce">
           <div
-            className={`px-6 py-3 rounded-2xl text-sm font-semibold shadow-xl border flex items-center gap-2 ${
+            className={`px-6 py-3 rounded-2xl text-sm font-semibold flex items-center gap-2 ${
               message.type === 'success'
-                ? 'bg-emerald-600 text-white border-emerald-500'
+                ? 'bg-emerald-600 text-white'
                 : message.type === 'info'
-                ? 'bg-blue-600 text-white border-blue-500'
-                : 'bg-rose-600 text-white border-rose-500'
+                ? 'bg-blue-600 text-white'
+                : 'bg-rose-600 text-white'
             }`}
           >
             <span>{message.type === 'success' ? '✅' : message.type === 'info' ? 'ℹ️' : '⚠️'}</span>
@@ -107,10 +145,10 @@ export default function Profile() {
         </div>
       )}
 
-      {/* Main Container */}
-      <div className="w-full max-w-xl bg-white rounded-2xl shadow-lg border border-slate-200/80 overflow-hidden">
+      {/* Main Container - Border & Shadow removed */}
+      <div className="w-full max-w-xl bg-white rounded-2xl overflow-hidden my-6">
         
-        {/* 🟣 Header Section: Gradient Background & Centered Title */}
+        {/* Header */}
         <div className="bg-gradient-to-r from-purple-900 via-indigo-900 to-purple-900 text-white p-6 md:p-8 text-center relative">
           <button
             onClick={() => navigate('/dashboard')}
@@ -122,13 +160,37 @@ export default function Profile() {
 
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Applicant Profile</h1>
           <p className="text-xs sm:text-sm text-purple-200/90 mt-1.5 max-w-md mx-auto">
-            Manage your personal details and resume details for job applications.
+            Manage your personal details and upload profile picture.
           </p>
         </div>
 
-        {/* ⚪ Form Section */}
+        {/* Form */}
         <div className="p-6 md:p-8">
           <form onSubmit={handleSubmit} className="space-y-4 text-sm">
+            
+            {/* Profile Picture Section - Border & Inner Shadow removed */}
+            <div className="flex flex-col items-center justify-center gap-3 pb-2">
+              <div className="relative w-24 h-24 rounded-full bg-purple-100 flex items-center justify-center overflow-hidden">
+                {previewAvatar ? (
+                  <img src={previewAvatar} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-3xl font-extrabold text-purple-700">
+                    {formData.name?.charAt(0).toUpperCase() || 'U'}
+                  </span>
+                )}
+              </div>
+
+              <label className="cursor-pointer bg-purple-50 text-purple-700 hover:bg-purple-100 font-semibold text-xs px-4 py-2 rounded-xl transition flex items-center gap-1.5">
+                📷 Change Photo
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={handleImageChange} 
+                  className="hidden" 
+                />
+              </label>
+            </div>
+
             <div>
               <label className="block font-semibold text-slate-700 mb-1">Full Name</label>
               <input
@@ -136,7 +198,7 @@ export default function Profile() {
                 required
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-medium focus:outline-none focus:border-purple-600 focus:bg-white transition"
+                className="w-full px-3.5 py-2.5 bg-slate-50 rounded-xl text-slate-800 font-medium focus:outline-none focus:bg-slate-100 transition"
               />
             </div>
 
@@ -146,7 +208,7 @@ export default function Profile() {
                 type="email"
                 disabled
                 value={formData.email}
-                className="w-full px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-slate-500 font-medium cursor-not-allowed"
+                className="w-full px-3.5 py-2.5 bg-slate-100 rounded-xl text-slate-500 font-medium cursor-not-allowed"
               />
             </div>
 
@@ -157,37 +219,32 @@ export default function Profile() {
                 placeholder="+8801700000000"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-medium focus:outline-none focus:border-purple-600 focus:bg-white transition"
+                className="w-full px-3.5 py-2.5 bg-slate-50 rounded-xl text-slate-800 font-medium focus:outline-none focus:bg-slate-100 transition"
               />
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">
-                Skills (Comma Separated)
-              </label>
+              <label className="block font-semibold text-slate-700 mb-1">Skills (Comma Separated)</label>
               <input
                 type="text"
                 placeholder="JavaScript, React, Node.js, Tailwind CSS"
                 value={formData.skills}
                 onChange={(e) => setFormData({ ...formData, skills: e.target.value })}
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-medium focus:outline-none focus:border-purple-600 focus:bg-white transition"
+                className="w-full px-3.5 py-2.5 bg-slate-50 rounded-xl text-slate-800 font-medium focus:outline-none focus:bg-slate-100 transition"
               />
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">
-                Resume URL (Google Drive / Cloudinary Link)
-              </label>
+              <label className="block font-semibold text-slate-700 mb-1">Resume URL</label>
               <input
                 type="url"
                 placeholder="https://drive.google.com/your-resume-link"
                 value={formData.resumeUrl}
                 onChange={(e) => setFormData({ ...formData, resumeUrl: e.target.value })}
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-medium focus:outline-none focus:border-purple-600 focus:bg-white transition"
+                className="w-full px-3.5 py-2.5 bg-slate-50 rounded-xl text-slate-800 font-medium focus:outline-none focus:bg-slate-100 transition"
               />
             </div>
 
-            {/* Action Buttons: Cancel on Left, Save on Right */}
             <div className="flex gap-3 pt-3">
               <button
                 type="button"
@@ -199,10 +256,8 @@ export default function Profile() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className={`flex-1 py-2.5 font-semibold rounded-xl transition shadow-md text-white ${
-                  isSubmitting
-                    ? 'bg-purple-400 cursor-not-allowed'
-                    : 'bg-purple-600 hover:bg-purple-700'
+                className={`flex-1 py-2.5 font-semibold rounded-xl transition text-white ${
+                  isSubmitting ? 'bg-purple-400 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-700'
                 }`}
               >
                 {isSubmitting ? 'Saving...' : 'Save'}

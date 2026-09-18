@@ -112,27 +112,34 @@ export default function EmployerDashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-8 text-left font-sans relative">
+    <div className="min-h-screen bg-slate-50 p-4 md:p-6 text-left font-sans relative">
       <div className="max-w-6xl mx-auto space-y-8">
         
-        {/* Navbar Header */}
-        <div className="bg-gradient-to-r from-purple-900 via-indigo-800 to-purple-900 text-white p-6 rounded-2xl shadow-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-white/10 backdrop-blur-md text-white border border-white/20 font-bold text-xl rounded-xl flex items-center justify-center uppercase shadow-inner">
-              {user?.name ? user.name[0] : 'E'}
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold text-white">{user?.name || 'Employer'}</h1>
-                <span className="px-2.5 py-0.5 bg-purple-500/30 border border-purple-300/30 text-purple-200 text-xs font-semibold rounded-full">
-                  {user?.role || 'EMPLOYER'}
-                </span>
-              </div>
-              <p className="text-sm text-purple-200/80 mt-0.5">{user?.email}</p>
-            </div>
+        {/* Navbar Header Banner */}
+        <div className="bg-gradient-to-r from-purple-900 via-indigo-800 to-purple-900 text-white p-6 rounded-2xl shadow-lg flex flex-col sm:flex-row justify-between items-center sm:items-center gap-6">
+          
+         {/* Left Section: Vertically Stacked Profile Info with Tighter Spacing */}
+        <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
+          
+          {/* 1. Profile Image / Avatar */}
+          <div className="w-14 h-14 bg-white/10 backdrop-blur-md text-white border border-white/20 font-bold text-2xl rounded-2xl flex items-center justify-center uppercase shadow-inner shrink-0">
+            {user?.name ? user.name[0] : 'M'}
           </div>
 
-          <div className="flex items-center gap-3 w-full sm:w-auto shrink-0">
+          {/* 2. Name (mb-1 দিয়ে স্পেস কমানো হয়েছে) */}
+          <h1 className="text-xl font-bold text-white tracking-tight leading-snug mb-1">
+            {user?.name || 'Md Alish Islam'}
+          </h1>
+
+          {/* 3. Employee / Employer Badge */}
+          <span className="px-3 py-0.5 bg-purple-500/30 border border-purple-300/30 text-purple-200 text-xs font-semibold rounded-full uppercase tracking-wider">
+            {user?.role || 'EMPLOYER'}
+          </span>
+
+        </div>
+
+          {/* Right Section: Action Buttons */}
+          <div className="flex items-center gap-3 w-full sm:w-auto shrink-0 justify-center">
             <Link
               to="/create-job"
               className="flex-1 sm:flex-initial text-center px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm rounded-xl transition-all shadow-md hover:shadow-lg border border-purple-400/40 whitespace-nowrap"
@@ -460,7 +467,7 @@ export default function EmployerDashboard() {
         </div>
       )}
 
-      {/* Logout Confirmation Modal (Cancel on Left, Logout on Right) */}
+      {/* Logout Confirmation Modal */}
       {showLogoutModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-center border border-slate-100">

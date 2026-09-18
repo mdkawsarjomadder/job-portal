@@ -18,7 +18,11 @@ export default function Home() {
     // Check logged in user
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (e) {
+        localStorage.clear();
+      }
     }
     fetchJobs();
   }, [search, category, location, jobType]);
@@ -29,7 +33,7 @@ export default function Home() {
       const res = await axios.get('http://localhost:5000/api/jobs', {
         params: { search, category, location, jobType },
       });
-      
+
       if (Array.isArray(res.data)) {
         setJobs(res.data);
       } else {
@@ -38,7 +42,8 @@ export default function Home() {
     } catch (err) {
       console.error('Error fetching jobs:', err);
       setJobs([]);
-    } finally {
+    } 
+    finally {
       setLoading(false);
     }
   };
@@ -51,9 +56,7 @@ export default function Home() {
   };
 
   const handleCancel = () => {
-    // Cancel বাটনে ক্লিক করলে ড্যাশবোর্ডে ফেরত নিয়ে যাবে
-    navigate('/dashboard'); 
-    // অথবা আগের পেজে পাঠাতে চাইলে ব্যবহার করতে পারেন: navigate(-1);
+    navigate('/dashboard');
   };
 
   const handleLogout = () => {
@@ -63,16 +66,26 @@ export default function Home() {
     navigate('/login');
   };
 
+  // 🎯 Smart Application Handler based on Auth State
+  const handleApplyClick = (jobId) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/login');
+    } else {
+      navigate(`/job/${jobId}`);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-left pb-12">
       
       {/* Hero Header Banner */}
       <div className="bg-gradient-to-r from-purple-900 via-indigo-900 to-purple-900 text-white py-14 px-4 sm:px-8 mb-8 relative overflow-hidden">
         
-        {/* 🏷️ Top Navigation Bar Header */}
+        {/* Top Navigation Bar Header */}
         <div className="absolute top-4 left-4 right-4 sm:top-6 sm:left-8 sm:right-8 z-20 flex items-center justify-between">
           
-          {/* Left Side: Logo */}
+          {/* Logo */}
           <div className="flex items-center">
             <Link to="/home" className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-1.5">
               <span className="bg-purple-600 text-white px-2.5 py-1 rounded-xl text-sm font-extrabold shadow-md">JP</span>
@@ -80,7 +93,7 @@ export default function Home() {
             </Link>
           </div>
 
-          {/* Center: Dashboard Button */}
+          {/* Dashboard Button */}
           <div className="absolute left-1/2 -translate-x-1/2">
             {user && (
               <Link
@@ -92,11 +105,10 @@ export default function Home() {
             )}
           </div>
 
-          {/* Right Side: Cancel & Logout (or Login/Register) */}
+          {/* Actions */}
           <div className="flex items-center gap-2">
             {user ? (
               <>
-                {/* 🔴 Fixed Cancel Button */}
                 <button
                   type="button"
                   onClick={handleCancel}
@@ -132,7 +144,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Banner Content */}
+        {/* Hero Banner Text */}
         <div className="max-w-4xl mx-auto relative z-10 space-y-3 text-center pt-8">
           <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight">
             Find Your <span className="text-purple-400">Dream Job</span> Today
@@ -145,7 +157,7 @@ export default function Home() {
 
       <div className="max-w-6xl mx-auto px-4 sm:px-8 space-y-8">
         
-        {/* 🔍 Search & Filter Card */}
+        {/* Search & Filter Card */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80 space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-base font-bold text-slate-800">Filter Opportunities</h2>
@@ -198,7 +210,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* 📋 Job Listings Section */}
+        {/* Job Listings Section */}
         <div>
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-bold text-slate-800">
@@ -249,12 +261,12 @@ export default function Home() {
                       {job.salary && <span>💰 {job.salary}</span>}
                     </div>
 
-                    <Link
-                      to={`/job/${job.id}`}
+                    <button
+                      onClick={() => handleApplyClick(job.id)}
                       className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium text-xs rounded-xl transition shadow-sm"
                     >
                       Apply Now
-                    </Link>
+                    </button>
                   </div>
                 </div>
               ))}
