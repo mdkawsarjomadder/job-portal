@@ -2,10 +2,12 @@ import express from 'express';
 import {
   createJob,
   getAllJobs,
+  getJobById,
   getEmployerJobsWithApplications,
   updateApplicationStatus,
   updateJob,
   deleteJob,
+  scheduleInterview,
 } from '../controllers/jobController.js';
 import { applyForJob, getMyApplications } from '../controllers/applicationController.js';
 import { getProfile, updateProfile } from '../controllers/userController.js'; 
@@ -26,9 +28,11 @@ router.post('/apply', authenticateToken, upload.single('resume'), applyForJob);
 router.get('/my-applications', authenticateToken, getMyApplications);
 router.get('/employer-jobs', authenticateToken, getEmployerJobsWithApplications);
 router.patch('/application-status/:applicationId', authenticateToken, updateApplicationStatus);
+router.post('/schedule-interview', authenticateToken, scheduleInterview);
 
 // 3. Dynamic Job Parameter Routes (সবশেষে রাখতে হবে)
 router.post('/', authenticateToken, createJob);
+router.get('/:jobId', getJobById);
 router.put('/:jobId', authenticateToken, updateJob);
 router.delete('/:jobId', authenticateToken, deleteJob);
 

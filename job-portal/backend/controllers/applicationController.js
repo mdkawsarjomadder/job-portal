@@ -1,10 +1,9 @@
-import { PrismaClient } from '@prisma/client';
-const prisma = new PrismaClient();
+import prisma from '../lib/prisma.js';
 
 // ১. জবে আবেদন করা (Apply for Job with Resume File)
 export const applyForJob = async (req, res) => {
   try {
-    const { jobId } = req.body;
+    const { jobId, phone } = req.body;
     const applicantId = req.user?.id; // Auth Middleware থেকে প্রাপ্ত ID
 
     if (!jobId) {
@@ -16,6 +15,15 @@ export const applyForJob = async (req, res) => {
       return res.status(400).json({ message: 'Please upload a PDF resume file' });
     }
 
+    // জব বিদ্যমান কিনা চেক করা
+    const targetJob = await prisma.job.findUnique({
+      where: { id: jobId },
+    });
+
+    if (!targetJob) {
+      return res.status(404).json({ message: 'Job not found or has been removed' });
+    }
+
     // ডাইনামিক হোস্ট ইউআরএল তৈরি (যেমন: http://localhost:5000/uploads/filename.pdf)
     const resumeUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
 
@@ -23,7 +31,7 @@ export const applyForJob = async (req, res) => {
     const existingApplication = await prisma.application.findUnique({
       where: {
         jobId_applicantId: {
-          jobId: jobId, // schema অনুযায়ী jobId string বা int হ্যান্ডেল করবে
+          jobId: jobId,
           applicantId: applicantId,
         },
       },
@@ -31,6 +39,14 @@ export const applyForJob = async (req, res) => {
 
     if (existingApplication) {
       return res.status(400).json({ message: 'You have already applied for this job' });
+    }
+
+    // ক্যান্ডিডেটের প্রোফাইলে ফোন নম্বর না থাকলে আপডেট করা (যাতে এমপ্লয়ার কল/এসএমএস দিতে পারে)
+    if (phone) {
+      await prisma.user.update({
+        where: { id: applicantId },
+        data: { phone },
+      }).catch(() => {}); // optional update
     }
 
     // নতুন অ্যাপ্লিকেশন ডাটাবেজে তৈরি

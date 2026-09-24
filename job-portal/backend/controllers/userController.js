@@ -1,6 +1,4 @@
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import prisma from "../lib/prisma.js";
 
 // User Profile Fetch
 export const getProfile = async (req, res) => {
@@ -37,7 +35,7 @@ export const updateProfile = async (req, res) => {
     // 📷 যদি নতুন ছবি আপলোড করা হয়ে থাকে তবে তার URL তৈরি করুন
     let avatarUrl = req.body.avatar;
     if (req.file) {
-      avatarUrl = `http://localhost:5000/uploads/${req.file.filename}`;
+      avatarUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
     }
 
     const updatedUser = await prisma.user.update({

@@ -1,8 +1,6 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/prisma.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-
-const prisma = new PrismaClient();
 
 export const register = async (req, res) => {
   try {
@@ -21,6 +19,13 @@ export const register = async (req, res) => {
         email,
         password: hashedPassword,
         role: role || 'APPLICANT',
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        createdAt: true,
       },
     });
 

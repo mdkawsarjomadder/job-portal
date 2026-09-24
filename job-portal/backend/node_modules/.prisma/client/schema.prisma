@@ -10,6 +10,7 @@ datasource db {
 enum Role {
   APPLICANT
   EMPLOYER
+  ADMIN
 }
 
 enum Status {
@@ -48,14 +49,19 @@ model Job {
 }
 
 model Application {
-  id          String   @id @default(uuid())
-  jobId       String
-  job         Job      @relation(fields: [jobId], references: [id])
-  applicantId String
-  applicant   User     @relation(fields: [applicantId], references: [id])
-  resumeUrl   String
-  status      Status   @default(PENDING)
-  appliedAt   DateTime @default(now())
+  id                String   @id @default(uuid())
+  jobId             String
+  job               Job      @relation(fields: [jobId], references: [id])
+  applicantId       String
+  applicant         User     @relation(fields: [applicantId], references: [id])
+  resumeUrl         String
+  status            Status   @default(PENDING)
+  interviewDate     String?
+  interviewTime     String?
+  interviewType     String?
+  interviewLocation String?
+  interviewPhone    String?
+  appliedAt         DateTime @default(now())
 
   @@unique([jobId, applicantId])
 }
