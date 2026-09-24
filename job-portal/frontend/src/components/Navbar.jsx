@@ -177,6 +177,7 @@ export default function Navbar() {
               >
                 <ShieldAlert size={15} className="text-amber-400" />
                 Admin 
+                
               </Link>
             )}
           </div>
