@@ -34,8 +34,6 @@ export default function ApplicantDashboard() {
   });
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  
-  // Profile Dropdown State
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -59,13 +57,17 @@ export default function ApplicantDashboard() {
     const storedUser = localStorage.getItem('user');
 
     if (storedUser) {
-      const parsedUser = JSON.parse(storedUser);
-      setUser(parsedUser);
-      setFormData(prev => ({
-        ...prev,
-        fullName: parsedUser.name || '',
-        email: parsedUser.email || ''
-      }));
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+        setFormData(prev => ({
+          ...prev,
+          fullName: parsedUser.name || '',
+          email: parsedUser.email || ''
+        }));
+      } catch (e) {
+        console.error('Error parsing stored user:', e);
+      }
     }
 
     if (!token) return;
@@ -151,12 +153,10 @@ export default function ApplicantDashboard() {
     }
 
     const token = localStorage.getItem('token');
-    
     const submitData = new FormData();
     submitData.append('jobId', selectedJob.id);
     submitData.append('resume', resumeFile);
     
-    // Append all form text inputs
     Object.keys(formData).forEach(key => {
       submitData.append(key, formData[key]);
     });
@@ -178,7 +178,6 @@ export default function ApplicantDashboard() {
       fetchMyApplications();
 
       showToast(res.data.message || 'Application submitted successfully!', 'success');
-
     } catch (err) {
       setIsSubmitting(false);
       console.error('Application Error:', err);
@@ -237,7 +236,7 @@ export default function ApplicantDashboard() {
             </span>
           </div>
 
-          {/* User Profile Dropdown Section */}
+          {/* Profile Dropdown */}
           <div className="relative inline-block" ref={dropdownRef}>
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -412,10 +411,10 @@ export default function ApplicantDashboard() {
                   <tbody className="divide-y divide-gray-200 text-sm">
                     {appliedJobs.map((app) => (
                       <tr key={app.id}>
-                        <td className="p-4 font-semibold text-gray-800">{app.job?.title}</td>
-                        <td className="p-4 text-gray-600">{app.job?.category}</td>
+                        <td className="p-4 font-semibold text-gray-800">{app.job?.title || 'N/A'}</td>
+                        <td className="p-4 text-gray-600">{app.job?.category || 'N/A'}</td>
                         <td className="p-4 text-gray-500">
-                          {new Date(app.appliedAt).toLocaleDateString()}
+                          {app.appliedAt ? new Date(app.appliedAt).toLocaleDateString() : 'N/A'}
                         </td>
                         <td className="p-4">
                           <span
@@ -427,8 +426,21 @@ export default function ApplicantDashboard() {
                                 : 'bg-yellow-100 text-yellow-800'
                             }`}
                           >
-                            {app.status}
+                            {app.status || 'PENDING'}
                           </span>
+
+                          {app.interviewDate && (
+                            <div className="mt-1.5 p-1.5 bg-purple-50 rounded-lg border border-purple-100 text-left">
+                              <p className="text-[11px] font-bold text-purple-700">
+                                🎯 Interview: {app.interviewDate} {app.interviewTime}
+                              </p>
+                              {app.interviewLocation && (
+                                <p className="text-[10px] text-gray-600 truncate max-w-[180px]">
+                                  📍 {app.interviewLocation}
+                                </p>
+                              )}
+                            </div>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -462,6 +474,19 @@ export default function ApplicantDashboard() {
             {/* Modal Form Scrollable Body */}
             <form onSubmit={handleFormSubmit} className="p-6 space-y-6 overflow-y-auto flex-1 text-xs sm:text-sm">
               
+              {/* 1. Resume Upload */}
+              <div className="p-4 bg-purple-50/60 rounded-xl border border-purple-100">
+                <label className="block font-bold text-gray-800 mb-2">
+                  Upload Resume (PDF format) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="file"
+                  accept=".pdf"
+                  onChange={(e) => setResumeFile(e.target.files[0])}
+                  className="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700 border border-gray-300 bg-white rounded-lg p-1.5 cursor-pointer"
+                  required
+                />
+              </div>
 
               {/* 2. Personal Information */}
               <div>
@@ -492,18 +517,6 @@ export default function ApplicantDashboard() {
                       required
                     />
                   </div>
-                  {/* <div>
-                    <label className="block text-gray-600 font-semibold mb-1">Mobile Number</label>
-                    <input
-                      type="tel"
-                      name="phone"
-                      value={formData.phone}
-                      onChange={handleInputChange}
-                      placeholder="+8801700000000"
-                      className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
-                      required
-                    />
-                  </div> */}
                   <div>
                     <label className="block text-gray-600 font-semibold mb-1">WhatsApp Number</label>
                     <input
@@ -714,19 +727,6 @@ export default function ApplicantDashboard() {
                     />
                   </div>
                 </div>
-              </div>
-                {/* 1. Resume Upload */}
-              <div className="p-4 bg-purple-50/60 rounded-xl border border-purple-100">
-                <label className="block font-bold text-gray-800 mb-2">
-                  Upload Resume (PDF format) <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="file"
-                  accept=".pdf"
-                  onChange={(e) => setResumeFile(e.target.files[0])}
-                  className="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700 border border-gray-300 bg-white rounded-lg p-1.5 cursor-pointer"
-                  required
-                />
               </div>
 
               {/* Action Buttons */}

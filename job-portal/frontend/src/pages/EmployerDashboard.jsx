@@ -10,7 +10,24 @@ export default function EmployerDashboard() {
   // Modals state
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [deleteJobId, setDeleteJobId] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [editingJob, setEditingJob] = useState(null);
+
+  // Status Update Modal State
+  const [statusModalData, setStatusModalData] = useState(null);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+
+  // Interview Modal States
+  const [selectedApplicant, setSelectedApplicant] = useState(null);
+  const [isInterviewModalOpen, setIsInterviewModalOpen] = useState(false);
+  const [interviewPhone, setInterviewPhone] = useState('');
+  const [isSendingSms, setIsSendingSms] = useState(false);
+  const [interviewDetails, setInterviewDetails] = useState({
+    date: '',
+    time: '',
+    type: 'In-Person',
+    locationOrLink: '',
+  });
 
   // Form state for editing job
   const [editFormData, setEditFormData] = useState({
@@ -44,17 +61,104 @@ export default function EmployerDashboard() {
     }
   };
 
-  const handleStatusUpdate = async (applicationId, status) => {
+  const handleOpenStatusModal = (applicationId, status, applicantName) => {
+    setStatusModalData({ applicationId, status, applicantName });
+  };
+
+  const handleConfirmStatusUpdate = async () => {
+    if (!statusModalData) return;
+    const { applicationId, status } = statusModalData;
     const token = localStorage.getItem('token');
+    setIsUpdatingStatus(true);
+
     try {
       await axios.patch(
         `http://localhost:5000/api/jobs/application-status/${applicationId}`,
         { status },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+      setStatusModalData(null);
       fetchEmployerJobs();
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to update status');
+    } 
+     finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
+  // Fixed Interview Modal Opener
+  const handleOpenInterviewModal = (appData, jobTitle = '') => {
+    console.log('Selected Application Object:', appData);
+    
+    // Automatically find phone number from all possible nested properties
+    const phone =
+      appData?.phone ||
+      appData?.applicant?.phone ||
+      appData?.applicant?.mobile ||
+      appData?.applicant?.contactNumber ||
+      '';
+
+    setSelectedApplicant({ ...appData, jobTitle });
+    setInterviewPhone(phone);
+    if (appData?.interviewDate) {
+      setInterviewDetails({
+        date: appData.interviewDate || '',
+        time: appData.interviewTime || '',
+        type: appData.interviewType || 'In-Person',
+        locationOrLink: appData.interviewLocation || '',
+      });
+    } else {
+      setInterviewDetails({ date: '', time: '', type: 'In-Person', locationOrLink: '' });
+    }
+    setIsInterviewModalOpen(true);
+  };
+
+  // Fixed Send SMS Handler
+  const handleSendInterviewCall = async (e) => {
+    e.preventDefault();
+
+    if (!interviewPhone || interviewPhone.trim() === '') {
+      alert('Please enter a candidate phone number!');
+      return;
+    }
+
+    setIsSendingSms(true);
+    const token = localStorage.getItem('token');
+
+    // Handle both relational DB ID and MongoDB _id
+    const appId = selectedApplicant?.id || selectedApplicant?._id;
+
+    const payload = {
+      applicationId: appId,
+      phone: interviewPhone.trim(),
+      applicantName: selectedApplicant?.applicant?.name || selectedApplicant?.applicantName || 'Candidate',
+      jobTitle: selectedApplicant?.jobTitle || selectedApplicant?.job?.title || 'Job Position',
+      date: interviewDetails.date,
+      time: interviewDetails.time,
+      type: interviewDetails.type,
+      locationOrLink: interviewDetails.locationOrLink,
+    };
+
+    console.log('Sending Interview Payload:', payload);
+
+    try {
+      const res = await axios.post(
+        'http://localhost:5000/api/jobs/schedule-interview',
+        payload,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      alert(res.data?.message || 'Interview scheduled successfully and saved to database!');
+      setIsInterviewModalOpen(false);
+      // Reset form fields and refresh table
+      setInterviewDetails({ date: '', time: '', type: 'In-Person', locationOrLink: '' });
+      fetchEmployerJobs();
+    } catch (err) {
+      console.error('SMS Send Error:', err.response?.data || err.message);
+      alert(err.response?.data?.message || 'Failed to send Interview SMS. Please check server logs.');
+    } finally {
+      setIsSendingSms(false);
     }
   };
 
@@ -73,8 +177,10 @@ export default function EmployerDashboard() {
   const handleUpdateJob = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem('token');
+    const jobId = editingJob.id || editingJob._id;
+
     try {
-      await axios.put(`http://localhost:5000/api/jobs/${editingJob.id}`, editFormData, {
+      await axios.put(`http://localhost:5000/api/jobs/${jobId}`, editFormData, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setEditingJob(null);
@@ -87,6 +193,8 @@ export default function EmployerDashboard() {
   const handleConfirmDeleteJob = async () => {
     if (!deleteJobId) return;
     const token = localStorage.getItem('token');
+    setIsDeleting(true);
+
     try {
       await axios.delete(`http://localhost:5000/api/jobs/${deleteJobId}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -95,6 +203,8 @@ export default function EmployerDashboard() {
       fetchEmployerJobs();
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to delete job');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -116,29 +226,19 @@ export default function EmployerDashboard() {
       <div className="max-w-6xl mx-auto space-y-8">
         
         {/* Navbar Header Banner */}
-        <div className="bg-gradient-to-r from-purple-900 via-indigo-800 to-purple-900 text-white p-6 rounded-2xl shadow-lg flex flex-col sm:flex-row justify-between items-center sm:items-center gap-6">
-          
-         {/* Left Section: Vertically Stacked Profile Info with Tighter Spacing */}
-        <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
-          
-          {/* 1. Profile Image / Avatar */}
-          <div className="w-14 h-14 bg-white/10 backdrop-blur-md text-white border border-white/20 font-bold text-2xl rounded-2xl flex items-center justify-center uppercase shadow-inner shrink-0">
-            {user?.name ? user.name[0] : 'M'}
+        <div className="bg-gradient-to-r from-purple-900 via-indigo-800 to-purple-900 text-white p-6 rounded-2xl shadow-lg flex flex-col sm:flex-row justify-between items-center gap-6">
+          <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
+            <div className="w-14 h-14 bg-white/10 backdrop-blur-md text-white border border-white/20 font-bold text-2xl rounded-2xl flex items-center justify-center uppercase shadow-inner shrink-0">
+              {user?.name ? user.name[0] : 'E'}
+            </div>
+            <h1 className="text-xl font-bold text-white tracking-tight leading-snug mb-1">
+              {user?.name || 'Employer Dashboard'}
+            </h1>
+            <span className="px-3 py-0.5 bg-purple-500/30 border border-purple-300/30 text-purple-200 text-xs font-semibold rounded-full uppercase tracking-wider">
+              {user?.role || 'EMPLOYER'}
+            </span>
           </div>
 
-          {/* 2. Name (mb-1 দিয়ে স্পেস কমানো হয়েছে) */}
-          <h1 className="text-xl font-bold text-white tracking-tight leading-snug mb-1">
-            {user?.name || 'Md Alish Islam'}
-          </h1>
-
-          {/* 3. Employee / Employer Badge */}
-          <span className="px-3 py-0.5 bg-purple-500/30 border border-purple-300/30 text-purple-200 text-xs font-semibold rounded-full uppercase tracking-wider">
-            {user?.role || 'EMPLOYER'}
-          </span>
-
-        </div>
-
-          {/* Right Section: Action Buttons */}
           <div className="flex items-center gap-3 w-full sm:w-auto shrink-0 justify-center">
             <Link
               to="/create-job"
@@ -184,159 +284,345 @@ export default function EmployerDashboard() {
 
         {/* Job List & Applications Section */}
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-slate-800">Job Applications</h2>
-          </div>
+          <h2 className="text-lg font-bold text-slate-800">Job Applications</h2>
 
           {jobsWithApps.length === 0 ? (
             <div className="bg-white p-12 text-center rounded-2xl border border-slate-200/80 shadow-sm">
               <p className="text-slate-400 font-medium">You haven't posted any jobs yet.</p>
             </div>
           ) : (
-            jobsWithApps.map((job) => (
-              <div key={job.id} className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-                
-                {/* Job Info Banner */}
-                <div className="p-6 bg-slate-50/50 border-b border-slate-100 flex flex-col md:flex-row justify-between md:items-center gap-4">
-                  <div>
-                    <div className="flex items-center gap-3">
-                      <h3 className="text-lg font-bold text-slate-800">{job.title}</h3>
-                      <span className="px-3 py-0.5 bg-purple-100/70 text-purple-700 text-xs font-semibold rounded-lg">
-                        {job.applications?.length || 0} Applicants
-                      </span>
+            jobsWithApps.map((job) => {
+              const jobId = job.id || job._id;
+              return (
+                <div key={jobId} className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                  <div className="p-6 bg-slate-50/50 border-b border-slate-100 flex flex-col md:flex-row justify-between md:items-center gap-4">
+                    <div>
+                      <div className="flex items-center gap-3">
+                        <h3 className="text-lg font-bold text-slate-800">{job.title}</h3>
+                        <span className="px-3 py-0.5 bg-purple-100/70 text-purple-700 text-xs font-semibold rounded-lg">
+                          {job.applications?.length || 0} Applicants
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-2 text-xs font-medium text-slate-500 mt-1">
+                        <span>📍 {job.location}</span>
+                        <span>•</span>
+                        <span>💼 {job.category}</span>
+                        <span>•</span>
+                        <span>⏳ {job.jobType}</span>
+                        {job.salary && (
+                          <>
+                            <span>•</span>
+                            <span>💰 {job.salary}</span>
+                          </>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex flex-wrap gap-2 text-xs font-medium text-slate-500 mt-1">
-                      <span>📍 {job.location}</span>
-                      <span>•</span>
-                      <span>💼 {job.category}</span>
-                      <span>•</span>
-                      <span>⏳ {job.jobType}</span>
-                      {job.salary && (
-                        <>
-                          <span>•</span>
-                          <span>💰 {job.salary}</span>
-                        </>
-                      )}
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditModal(job)}
+                        className="px-3 py-1.5 bg-slate-200/80 hover:bg-slate-300/80 text-slate-700 text-xs font-semibold rounded-lg transition flex items-center gap-1"
+                      >
+                        ✏️ Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeleteJobId(jobId)}
+                        className="px-3 py-1.5 bg-rose-100 hover:bg-rose-200 text-rose-700 text-xs font-semibold rounded-lg transition flex items-center gap-1"
+                      >
+                        🗑️ Delete
+                      </button>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleOpenEditModal(job)}
-                      className="px-3 py-1.5 bg-slate-200/80 hover:bg-slate-300/80 text-slate-700 text-xs font-semibold rounded-lg transition flex items-center gap-1"
-                    >
-                      ✏️ Edit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDeleteJobId(job.id)}
-                      className="px-3 py-1.5 bg-rose-100 hover:bg-rose-200 text-rose-700 text-xs font-semibold rounded-lg transition flex items-center gap-1"
-                    >
-                      🗑️ Delete
-                    </button>
-                  </div>
-                </div>
-
-                {/* Applications Table */}
-                {!job.applications || job.applications.length === 0 ? (
-                  <div className="p-6 text-center text-sm text-slate-400 italic">
-                    No applications received for this job yet.
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                      <thead className="bg-gradient-to-r from-purple-800 to-indigo-900 text-white text-xs font-bold uppercase tracking-wider">
-                        <tr>
-                          <th className="py-3.5 px-6">Applicant</th>
-                          <th className="py-3.5 px-6">Email</th>
-                          <th className="py-3.5 px-6">Resume</th>
-                          <th className="py-3.5 px-6">Status</th>
-                          <th className="py-3.5 px-6 text-right">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 text-sm">
-                        {job.applications.map((app) => (
-                          <tr key={app.id} className="hover:bg-purple-50/30 transition">
-                            <td className="py-4 px-6 font-semibold text-slate-800">
-                              {app.applicant?.name || 'N/A'}
-                            </td>
-                            <td className="py-4 px-6 text-slate-500">
-                              {app.applicant?.email || 'N/A'}
-                            </td>
-                            <td className="py-4 px-6">
-                              {app.resumeUrl ? (
-                                <a
-                                  href={app.resumeUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1.5 text-purple-600 hover:text-purple-700 font-medium text-xs bg-purple-50 hover:bg-purple-100 px-3 py-1.5 rounded-lg transition"
-                                >
-                                  📄 View Resume
-                                </a>
-                              ) : (
-                                <span className="text-slate-300 text-xs">Not Provided</span>
-                              )}
-                            </td>
-                            <td className="py-4 px-6">
-                              <span
-                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full ${
-                                  app.status === 'SHORTLISTED'
-                                    ? 'bg-emerald-100/80 text-emerald-700'
-                                    : app.status === 'REJECTED'
-                                    ? 'bg-rose-100/80 text-rose-700'
-                                    : 'bg-amber-100/80 text-amber-700'
-                                }`}
-                              >
-                                <span
-                                  className={`w-1.5 h-1.5 rounded-full ${
-                                    app.status === 'SHORTLISTED'
-                                      ? 'bg-emerald-500'
-                                      : app.status === 'REJECTED'
-                                      ? 'bg-rose-500'
-                                      : 'bg-amber-500'
-                                  }`}
-                                ></span>
-                                {app.status}
-                              </span>
-                            </td>
-                            <td className="py-4 px-6 text-right">
-                              <div className="flex items-center justify-end gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => handleStatusUpdate(app.id, 'SHORTLISTED')}
-                                  disabled={app.status === 'SHORTLISTED'}
-                                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-medium rounded-lg transition shadow-sm"
-                                >
-                                  Shortlist
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleStatusUpdate(app.id, 'REJECTED')}
-                                  disabled={app.status === 'REJECTED'}
-                                  className="px-3 py-1.5 bg-rose-500 hover:bg-rose-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-medium rounded-lg transition shadow-sm"
-                                >
-                                  Reject
-                                </button>
-                              </div>
-                            </td>
+                  {/* Applications Table */}
+                  {!job.applications || job.applications.length === 0 ? (
+                    <div className="p-6 text-center text-sm text-slate-400 italic">
+                      No applications received for this job yet.
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead className="bg-gradient-to-r from-purple-800 to-indigo-900 text-white text-xs font-bold uppercase tracking-wider">
+                          <tr>
+                            <th className="py-3.5 px-6">Applicant</th>
+                            <th className="py-3.5 px-6">Email</th>
+                            <th className="py-3.5 px-6">Resume</th>
+                            <th className="py-3.5 px-6">Status</th>
+                            <th className="py-3.5 px-6 text-right">Actions</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            ))
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 text-sm">
+                          {job.applications.map((app) => {
+                            const appId = app.id || app._id;
+                            return (
+                              <tr key={appId} className="hover:bg-purple-50/30 transition">
+                                <td className="py-4 px-6 font-semibold text-slate-800">
+                                  {app.applicant?.name || app.applicantName || 'N/A'}
+                                </td>
+                                <td className="py-4 px-6 text-slate-500">
+                                  {app.applicant?.email || app.applicantEmail || 'N/A'}
+                                </td>
+                                <td className="py-4 px-6">
+                                  {app.resumeUrl ? (
+                                    <a
+                                      href={app.resumeUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1.5 text-purple-600 hover:text-purple-700 font-medium text-xs bg-purple-50 hover:bg-purple-100 px-3 py-1.5 rounded-lg transition"
+                                    >
+                                      📄 View Resume
+                                    </a>
+                                  ) : (
+                                    <span className="text-slate-300 text-xs">Not Provided</span>
+                                  )}
+                                </td>
+                                <td className="py-4 px-6">
+                                  <span
+                                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full ${
+                                      app.status === 'SHORTLISTED'
+                                        ? 'bg-emerald-100/80 text-emerald-700'
+                                        : app.status === 'REJECTED'
+                                        ? 'bg-rose-100/80 text-rose-700'
+                                        : 'bg-amber-100/80 text-amber-700'
+                                    }`}
+                                  >
+                                    <span
+                                      className={`w-1.5 h-1.5 rounded-full ${
+                                        app.status === 'SHORTLISTED'
+                                          ? 'bg-emerald-500'
+                                          : app.status === 'REJECTED'
+                                          ? 'bg-rose-500'
+                                          : 'bg-amber-500'
+                                      }`}
+                                    ></span>
+                                    {app.status}
+                                  </span>
+
+                                  {app.interviewDate && (
+                                    <div className="mt-1.5 flex flex-col text-[11px] text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-1 rounded-lg text-left">
+                                      <span className="font-bold">📅 {app.interviewDate} {app.interviewTime}</span>
+                                      <span className="text-[10px] text-slate-500 font-medium truncate max-w-[140px] mt-0.5">
+                                        📍 {app.interviewLocation}
+                                      </span>
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="py-4 px-6 text-right">
+                                  <div className="flex items-center justify-end gap-2">
+                                    {app.status === 'SHORTLISTED' && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleOpenInterviewModal(app, job.title)}
+                                        className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-lg transition shadow-sm flex items-center gap-1"
+                                      >
+                                        {app.interviewDate ? '🔄 Edit Interview' : '✉️ Send Interview SMS'}
+                                      </button>
+                                    )}
+
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenStatusModal(appId, 'SHORTLISTED', app.applicant?.name)}
+                                      disabled={app.status === 'SHORTLISTED'}
+                                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-medium rounded-lg transition shadow-sm"
+                                    >
+                                      Shortlist
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenStatusModal(appId, 'REJECTED', app.applicant?.name)}
+                                      disabled={app.status === 'REJECTED'}
+                                      className="px-3 py-1.5 bg-rose-500 hover:bg-rose-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-medium rounded-lg transition shadow-sm"
+                                    >
+                                      Reject
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              );
+            })
           )}
         </div>
-
       </div>
+
+      {/* Schedule Interview Modal */}
+      {isInterviewModalOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => !isSendingSms && setIsInterviewModalOpen(false)}
+        >
+          <div 
+            className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-bold text-slate-800 border-b pb-3">
+              Call Interview for <span className="text-purple-600">{selectedApplicant?.applicant?.name || selectedApplicant?.applicantName || 'Candidate'}</span>
+            </h3>
+
+            <form onSubmit={handleSendInterviewCall} className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">
+                  Candidate Phone Number <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. 01700000000"
+                  value={interviewPhone}
+                  onChange={(e) => setInterviewPhone(e.target.value)}
+                  className="w-full px-3.5 py-2 border border-slate-200 rounded-xl focus:outline-none focus:border-purple-600 text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Interview Date</label>
+                <input
+                  type="date"
+                  required
+                  value={interviewDetails.date}
+                  onChange={(e) => setInterviewDetails({ ...interviewDetails, date: e.target.value })}
+                  className="w-full px-3.5 py-2 border border-slate-200 rounded-xl focus:outline-none focus:border-purple-600 text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Interview Time</label>
+                <input
+                  type="time"
+                  required
+                  value={interviewDetails.time}
+                  onChange={(e) => setInterviewDetails({ ...interviewDetails, time: e.target.value })}
+                  className="w-full px-3.5 py-2 border border-slate-200 rounded-xl focus:outline-none focus:border-purple-600 text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Interview Mode</label>
+                <select
+                  value={interviewDetails.type}
+                  onChange={(e) => setInterviewDetails({ ...interviewDetails, type: e.target.value })}
+                  className="w-full px-3.5 py-2 border border-slate-200 rounded-xl focus:outline-none focus:border-purple-600 text-sm bg-white"
+                >
+                  <option value="In-Person">In-Person (Office)</option>
+                  <option value="Online">Online (Google Meet / Zoom)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">
+                  {interviewDetails.type === 'In-Person' ? 'Office Location Address' : 'Meeting Link'}
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder={interviewDetails.type === 'In-Person' ? 'e.g. Room 202, Mirpur 1, Dhaka' : 'https://meet.google.com/xyz'}
+                  value={interviewDetails.locationOrLink}
+                  onChange={(e) => setInterviewDetails({ ...interviewDetails, locationOrLink: e.target.value })}
+                  className="w-full px-3.5 py-2 border border-slate-200 rounded-xl focus:outline-none focus:border-purple-600 text-sm"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsInterviewModalOpen(false)}
+                  disabled={isSendingSms}
+                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 font-medium rounded-xl text-sm transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSendingSms}
+                  className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-medium rounded-xl text-sm shadow-sm transition flex items-center justify-center gap-2"
+                >
+                  {isSendingSms ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Sending SMS...</span>
+                    </>
+                  ) : (
+                    'Send Call SMS'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Status Update Confirmation Modal */}
+      {statusModalData && (
+        <div 
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => !isUpdatingStatus && setStatusModalData(null)}
+        >
+          <div 
+            className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-center border border-slate-100"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto text-xl font-bold ${
+                statusModalData.status === 'SHORTLISTED'
+                  ? 'bg-emerald-100 text-emerald-600'
+                  : 'bg-rose-100 text-rose-600'
+              }`}
+            >
+              {statusModalData.status === 'SHORTLISTED' ? '✨' : '🚫'}
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-slate-800">
+                Update Status to {statusModalData.status}?
+              </h3>
+              <p className="text-sm text-slate-500 mt-1">
+                Are you sure you want to mark <span className="font-semibold text-slate-700">{statusModalData.applicantName || 'this candidate'}</span> as{' '}
+                <span className="font-semibold">{statusModalData.status}</span>?
+              </p>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setStatusModalData(null)}
+                disabled={isUpdatingStatus}
+                className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 font-medium text-sm rounded-xl transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmStatusUpdate}
+                disabled={isUpdatingStatus}
+                className={`flex-1 py-2.5 text-white font-medium text-sm rounded-xl transition shadow-sm disabled:opacity-50 ${
+                  statusModalData.status === 'SHORTLISTED'
+                    ? 'bg-emerald-600 hover:bg-emerald-700'
+                    : 'bg-rose-600 hover:bg-rose-700'
+                }`}
+              >
+                {isUpdatingStatus ? 'Updating...' : 'Confirm'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Edit Job Modal */}
       {editingJob && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 border border-slate-100">
+        <div 
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => setEditingJob(null)}
+        >
+          <div 
+            className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 border border-slate-100"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex justify-between items-center border-b border-slate-100 pb-3">
               <h3 className="text-lg font-bold text-slate-800">Edit Job Listing</h3>
               <button
@@ -395,7 +681,7 @@ export default function EmployerDashboard() {
                   <select
                     value={editFormData.jobType}
                     onChange={(e) => setEditFormData({ ...editFormData, jobType: e.target.value })}
-                    className="w-full px-3.5 py-2 border border-slate-200 rounded-xl focus:outline-none focus:border-purple-600"
+                    className="w-full px-3.5 py-2 border border-slate-200 rounded-xl focus:outline-none focus:border-purple-600 bg-white"
                   >
                     <option value="Full-time">Full-time</option>
                     <option value="Part-time">Part-time</option>
@@ -436,8 +722,14 @@ export default function EmployerDashboard() {
 
       {/* Delete Confirmation Modal */}
       {deleteJobId && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-center border border-slate-100">
+        <div 
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => !isDeleting && setDeleteJobId(null)}
+        >
+          <div 
+            className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-center border border-slate-100"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="w-12 h-12 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto text-xl font-bold">
               🗑️
             </div>
@@ -450,17 +742,19 @@ export default function EmployerDashboard() {
             <div className="flex gap-3 pt-2">
               <button
                 type="button"
+                disabled={isDeleting}
                 onClick={() => setDeleteJobId(null)}
-                className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-sm rounded-xl transition"
+                className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 font-medium text-sm rounded-xl transition"
               >
                 Cancel
               </button>
               <button
                 type="button"
+                disabled={isDeleting}
                 onClick={handleConfirmDeleteJob}
-                className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-medium text-sm rounded-xl transition shadow-sm"
+                className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-medium text-sm rounded-xl transition shadow-sm flex items-center justify-center gap-2"
               >
-                Delete
+                {isDeleting ? 'Deleting...' : 'Delete'}
               </button>
             </div>
           </div>
@@ -469,8 +763,14 @@ export default function EmployerDashboard() {
 
       {/* Logout Confirmation Modal */}
       {showLogoutModal && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-center border border-slate-100">
+        <div 
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => setShowLogoutModal(false)}
+        >
+          <div 
+            className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-center border border-slate-100"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="w-12 h-12 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto text-xl font-bold">
               🚪
             </div>

@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
 
+import Navbar from '../components/Navbar';
+
 export default function Home() {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -15,15 +17,18 @@ export default function Home() {
   const [jobType, setJobType] = useState('');
 
   useEffect(() => {
-    // Check logged in user
+    // Check logged in user on mount
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
       try {
         setUser(JSON.parse(storedUser));
-      } catch (e) {
+      } catch {
         localStorage.clear();
       }
     }
+  }, []);
+
+  useEffect(() => {
     fetchJobs();
   }, [search, category, location, jobType]);
 
@@ -55,17 +60,6 @@ export default function Home() {
     setJobType('');
   };
 
-  const handleCancel = () => {
-    navigate('/dashboard');
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setUser(null);
-    navigate('/login');
-  };
-
   // 🎯 Smart Application Handler based on Auth State
   const handleApplyClick = (jobId) => {
     const token = localStorage.getItem('token');
@@ -78,76 +72,17 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-left pb-12">
-      
+      {/* Sticky Global Navbar */}
+      <Navbar />
+
       {/* Hero Header Banner */}
-      <div className="bg-gradient-to-r from-purple-900 via-indigo-900 to-purple-900 text-white py-14 px-4 sm:px-8 mb-8 relative overflow-hidden">
-        
-        {/* Top Navigation Bar Header */}
-        <div className="absolute top-4 left-4 right-4 sm:top-6 sm:left-8 sm:right-8 z-20 flex items-center justify-between">
-          
-          {/* Logo */}
-          <div className="flex items-center">
-            <Link to="/home" className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-1.5">
-              <span className="bg-purple-600 text-white px-2.5 py-1 rounded-xl text-sm font-extrabold shadow-md">JP</span>
-              <span>JobPortal</span>
-            </Link>
-          </div>
-
-          {/* Dashboard Button */}
-          <div className="absolute left-1/2 -translate-x-1/2">
-            {user && (
-              <Link
-                to="/dashboard"
-                className="px-4 py-1.5 sm:px-5 sm:py-2 bg-white/10 hover:bg-white/20 text-white font-semibold text-xs sm:text-sm rounded-xl backdrop-blur-md border border-white/20 transition shadow-sm"
-              >
-                Dashboard
-              </Link>
-            )}
-          </div>
-
-          {/* Actions */}
-          <div className="flex items-center gap-2">
-            {user ? (
-              <>
-                <button
-                  type="button"
-                  onClick={handleCancel}
-                  className="px-3.5 py-1.5 sm:px-4 sm:py-2 bg-white/10 hover:bg-white/20 text-white font-semibold text-xs sm:text-sm rounded-xl backdrop-blur-md border border-white/20 transition shadow-sm"
-                >
-                  Cancel
-                </button>
-                
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="px-3.5 py-1.5 sm:px-4 sm:py-2 bg-rose-500/20 hover:bg-rose-500/40 text-rose-200 border border-rose-400/30 font-semibold text-xs sm:text-sm rounded-xl backdrop-blur-md transition"
-                >
-                  Logout
-                </button>
-              </>
-            ) : (
-              <>
-                <Link
-                  to="/login"
-                  className="px-3.5 py-1.5 sm:px-4 sm:py-2 bg-white/10 hover:bg-white/20 text-white font-semibold text-xs sm:text-sm rounded-xl backdrop-blur-md border border-white/20 transition shadow-sm"
-                >
-                  Login
-                </Link>
-                <Link
-                  to="/register"
-                  className="px-3.5 py-1.5 sm:px-4 sm:py-2 bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs sm:text-sm rounded-xl transition shadow-md"
-                >
-                  Register
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Hero Banner Text */}
-        <div className="max-w-4xl mx-auto relative z-10 space-y-3 text-center pt-8">
+      <div className="bg-gradient-to-r from-purple-900 via-indigo-900 to-purple-900 text-white py-16 px-4 sm:px-8 mb-8 relative overflow-hidden text-center shadow-inner">
+        <div className="max-w-4xl mx-auto relative z-10 space-y-3">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 text-purple-200 text-xs font-semibold rounded-full border border-white/15 backdrop-blur-sm">
+            ✨ Explore verified career opportunities
+          </span>
           <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight">
-            Find Your <span className="text-purple-400">Dream Job</span> Today
+            Find Your <span className="text-purple-300">Dream Job</span> Today
           </h1>
           <p className="text-purple-200/90 text-sm sm:text-base max-w-xl mx-auto">
             Explore thousands of job opportunities from top companies and kickstart your career now.

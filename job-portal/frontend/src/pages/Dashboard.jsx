@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import ApplicantDashboard from './ApplicantDashboard';
 import EmployerDashboard from './EmployerDashboard'; // 1. EmployerDashboard import kora holo
+import AdminDashboard from './AdminDashboard';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -23,7 +24,7 @@ export default function Dashboard() {
       // ১. প্রারম্ভিক লোকাল স্টোরেজ ডাটা সেট করা
       try {
         setUser(JSON.parse(storedUser));
-      } catch (error) {
+      } catch {
         localStorage.clear();
         navigate('/login');
         return;
@@ -65,7 +66,11 @@ export default function Dashboard() {
 
   if (!user) return null;
 
-  // 2. Role-based Dashboard Render Fix
+  // Role-based Dashboard Render
+  if (user.role === 'ADMIN') {
+    return <AdminDashboard />;
+  }
+
   if (user.role === 'APPLICANT') {
     return <ApplicantDashboard />;
   }

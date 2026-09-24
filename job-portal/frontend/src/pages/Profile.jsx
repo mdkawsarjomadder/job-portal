@@ -113,7 +113,7 @@ export default function Profile() {
       });
 
       setTimeout(() => {
-        setMessage({ type: '', text: '' }), 3000;
+        setMessage({ type: '', text: '' });
       }, 3000);
     } finally {
       setIsSubmitting(false);

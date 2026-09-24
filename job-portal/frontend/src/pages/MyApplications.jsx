@@ -114,6 +114,54 @@ export default function MyApplications() {
                     </span>
                   </div>
 
+                  {/* Scheduled Interview Banner (if present) */}
+                  {app.interviewDate && (
+                    <div className="mb-5 p-4 rounded-2xl bg-gradient-to-r from-purple-50 via-indigo-50 to-purple-50 border border-purple-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm text-left">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-base">🎯</span>
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-purple-700 bg-purple-100/90 px-2.5 py-0.5 rounded-full border border-purple-200">
+                            Interview Scheduled
+                          </span>
+                          <span className="text-xs font-semibold text-slate-500">
+                            ({app.interviewType || 'In-Person'})
+                          </span>
+                        </div>
+                        <p className="text-sm font-bold text-slate-800">
+                          📅 {app.interviewDate} at ⏰ {app.interviewTime}
+                        </p>
+                        {app.interviewLocation && (
+                          <p className="text-xs text-slate-600 flex items-center gap-1.5 flex-wrap">
+                            <span className="font-semibold text-slate-500">📍 Venue / Link:</span>
+                            {app.interviewLocation.startsWith('http') ? (
+                              <a
+                                href={app.interviewLocation}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-purple-600 hover:text-purple-700 font-semibold underline"
+                              >
+                                {app.interviewLocation}
+                              </a>
+                            ) : (
+                              <span className="font-semibold text-slate-700">{app.interviewLocation}</span>
+                            )}
+                          </p>
+                        )}
+                      </div>
+
+                      {app.interviewLocation && app.interviewLocation.startsWith('http') && (
+                        <a
+                          href={app.interviewLocation}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl shadow-sm transition whitespace-nowrap self-start sm:self-center"
+                        >
+                          Join Meeting 🔗
+                        </a>
+                      )}
+                    </div>
+                  )}
+
                   {/* Information Grid with Larger Text */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-8 text-base text-slate-600 mb-6">
                     {app.job?.location && (
@@ -131,7 +179,11 @@ export default function MyApplications() {
                     {app.job?.salary && (
                       <div className="flex items-center gap-2">
                         <span className="text-slate-400">💰 Salary:</span>
-                        <span className="font-semibold text-slate-700">${Number(app.job.salary).toLocaleString()}</span>
+                        <span className="font-semibold text-slate-700">
+                          {isNaN(Number(app.job.salary))
+                            ? app.job.salary
+                            : `$${Number(app.job.salary).toLocaleString()}`}
+                        </span>
                       </div>
                     )}
                     <div className="flex items-center gap-2">
